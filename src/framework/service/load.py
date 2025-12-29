@@ -520,7 +520,7 @@ async def register(**constants: Any) -> None:
     """
     #service_val = constants.get('service', constants.get('name'))
     try:
-        await flow.pipe(
+        return await flow.pipe(
             flow.step(_check_di_config, **constants),
             #flow.step(_ensure_service_container, service_val),
             flow.step(_ensure_service_container, '@.service'),
