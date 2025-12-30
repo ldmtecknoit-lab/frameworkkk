@@ -260,23 +260,36 @@ class DSLVisitor:
         return res[0] if len(res) == 1 else tuple(res)
 
 async def _dsl_load_adapter(func_name, *args, **kw):
-    import framework.service.load as load
-    func = getattr(load, func_name)
-    try:
-        # Se riceve un singolo dict come argomento posizionale, lo usa come kw
-        if len(args) == 1 and isinstance(args[0], dict) and not kw:
-            kw = args[0]
-            args = ()
-        
-        if func_name == 'resource' and args and isinstance(args[0], dict) and 'path' in args[0]: args = (args[0]['path'],) + args[1:]
-        res = await func(*args, **kw)
-        return res.get('data', res) if isinstance(res, dict) else res
-    except Exception as e:
-        framework_log("ERROR", f"Error {func_name}: {e}", emoji="❌"); return None
+    import framework.service.context as context
+
+    await asyncio.sleep(5)
+    dd = context.container.module_cache()
+    #print(func_name,dd)
+    #return dd.get(f"framework/manager/{func_name}.py")
+    return getattr(context.container, func_name)()
+
+async def _dsl_load_service(func_name, *args, **kw):
+        import framework.service.load as load
+        func = getattr(load, func_name)
+        try:
+            # Se riceve un singolo dict come argomento posizionale, lo usa come kw
+            if len(args) == 1 and isinstance(args[0], dict) and not kw:
+                kw = args[0]
+                args = ()
+            
+            if func_name == 'resource' and args and isinstance(args[0], dict) and 'path' in args[0]: args = (args[0]['path'],) + args[1:]
+            res = await func(*args, **kw)
+            return res.get('data', res) if isinstance(res, dict) else res
+        except Exception as e:
+            framework_log("ERROR", f"Error {func_name}: {e}", emoji="❌"); return None
+    
 
 dsl_functions = {
     n: lambda *a, n=n, **kw: _dsl_load_adapter(n, *a, **kw) 
-    for n in ['storekeeper','messenger','executor','presenter','defender','resource','register']
+    for n in ['storekeeper','messenger','executor','presenter','defender']
+} | {
+    n: lambda *a, n=n, **kw: _dsl_load_service(n, *a, **kw) 
+    for n in ['resource','register']
 }
 
 # Proxy class per accedere ai metodi dell'executor con sintassi executor.method()

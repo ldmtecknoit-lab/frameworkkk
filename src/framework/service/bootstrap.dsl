@@ -31,6 +31,8 @@
     );
     
     registered_managers : managers | foreach(register) | print;
+
+    ok: messenger().post(message:"Hello World")|print;
     
     services : static_services | merge(dynamic_services) | foreach(register) | print;
 }
