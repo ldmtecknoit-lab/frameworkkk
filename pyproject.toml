@@ -20,5 +20,10 @@ database = "database-MJZMYZ6J"
 username = "default"
 password = "3LkESG6clHa2hJj1zF8CabQlqU50O6zL"
 
-[apresentation.cli]
-adapter = "cli"
+[presentation.backend]
+adapter = "starlette"
+host = "0.0.0.0"
+port = "5000"
+#route = "web.xml"
+#ssl_keyfile = "key.pem"
+#ssl_certfile = "cert.pem"

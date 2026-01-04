@@ -708,7 +708,7 @@ class adapter(presentation.port):
 
         async def starter():
             print("Starlette: Inizializzazione in corso...")
-            exit(1000)
+            
             await self.parse_route()
             self.mount_route(routes) # 'routes' deve essere accessibile qui
 
