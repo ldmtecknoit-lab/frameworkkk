@@ -1,8 +1,0 @@
-{
-    "adapter": {
-        "start_span": {
-            "test": "619639a98315591a68b6aef227885c447ed39f7390baf36de8f3621c55522262",
-            "production": "236f0e3a6318e3b5b4e15c59e7b76fc162ef8ad3b58d1d0e30731df5a496f146"
-        }
-    }
-}
