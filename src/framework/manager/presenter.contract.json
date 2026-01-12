@@ -1,8 +1,8 @@
 {
     "presenter": {
         "selector": {
-            "test": "c1a750d62adaf7de84933fe51e5b299248ba836c30a106bbaee18261cf0fe560",
-            "production": "bb967b40a82838f17a6d64c77a61d6c2e4afe36c904fa426ca3d14f9e077e2f5"
+            "production": "bb967b40a82838f17a6d64c77a61d6c2e4afe36c904fa426ca3d14f9e077e2f5",
+            "test": "c1a750d62adaf7de84933fe51e5b299248ba836c30a106bbaee18261cf0fe560"
         }
     }
 }

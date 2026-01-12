@@ -1,12 +1,12 @@
 {
     "adapter": {
         "post": {
-            "test": "2edf57c5a86e5f6a58b62417f8cc01b06893fd955b4ddb6b42074a2d466993aa",
-            "production": "1d399c57a27c2909d65a7660955bc1e0eeb21baf6d47103476b5f8414cb199c6"
+            "production": "1d399c57a27c2909d65a7660955bc1e0eeb21baf6d47103476b5f8414cb199c6",
+            "test": "2edf57c5a86e5f6a58b62417f8cc01b06893fd955b4ddb6b42074a2d466993aa"
         },
         "read": {
-            "test": "5cb24d1eaa77c94e9e01f86b0bb252cf4e2e4798e18055efa8df6d3f05cff595",
-            "production": "f995a94666d1906350ca99a8c4aa8596706dca4438936aec3ad126847b0b8f95"
+            "production": "f995a94666d1906350ca99a8c4aa8596706dca4438936aec3ad126847b0b8f95",
+            "test": "5cb24d1eaa77c94e9e01f86b0bb252cf4e2e4798e18055efa8df6d3f05cff595"
         }
     }
 }

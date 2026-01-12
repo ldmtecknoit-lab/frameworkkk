@@ -1,24 +1,24 @@
 {
     "repository": {
-        "find_first_formattable_template": {
-            "test": "bef6b5744cd90cbf630eaa7365e5ad6816c6bd311709c031a1679e2620678d14",
-            "production": "76a0cd9e9cc81484e38a3f410e01685f936c066a2071f74cd187d51ce64553e9"
-        },
         "can_format": {
-            "test": "d49ed20fdcbf2c85d6dd1506dc7e8fb01ea7f932a8848622a71546a14754246f",
-            "production": "fcf81250a559cf43698b338ccca7c0313200e73707530d04e40b98630c53be5b"
+            "production": "fcf81250a559cf43698b338ccca7c0313200e73707530d04e40b98630c53be5b",
+            "test": "dd99500aae66b0d79ba670f5c013df25297cb087b2925a711014b9c4b019548d"
         },
         "do_format": {
-            "test": "7cbec7204f5d8a0b782fbf94d856ea4ac9f439050196089b3bb5832535696af5",
-            "production": "d859d60ab4a93dfd9b06f751e5837b4a1e57bbca3628613abf65c671ac8f5e90"
+            "production": "d859d60ab4a93dfd9b06f751e5837b4a1e57bbca3628613abf65c671ac8f5e90",
+            "test": "dd99500aae66b0d79ba670f5c013df25297cb087b2925a711014b9c4b019548d"
         },
-        "parameters": {
-            "test": "88f67b0efedbf73d05bec8f81043ba09cf083e89433614fc5a2cef0ab90f4678",
-            "production": "56060489e02f779976ddd1faae41a5d964f2a2b5b1243fbc26dd3d2960d2023e"
+        "find_first_formattable_template": {
+            "production": "76a0cd9e9cc81484e38a3f410e01685f936c066a2071f74cd187d51ce64553e9",
+            "test": "dd99500aae66b0d79ba670f5c013df25297cb087b2925a711014b9c4b019548d"
         },
         "results": {
-            "test": "c80aa97ff4cce7a5489a1d54a36aec15ccb91a1d31648f43d4879f652cdbd169",
-            "production": "bbda6b684277b938520fa0201c04a0466ec59f6c49257ed17784c32b656213f2"
+            "production": "bbda6b684277b938520fa0201c04a0466ec59f6c49257ed17784c32b656213f2",
+            "test": "dd99500aae66b0d79ba670f5c013df25297cb087b2925a711014b9c4b019548d"
+        },
+        "parameters": {
+            "production": "56060489e02f779976ddd1faae41a5d964f2a2b5b1243fbc26dd3d2960d2023e",
+            "test": "dd99500aae66b0d79ba670f5c013df25297cb087b2925a711014b9c4b019548d"
         }
     }
 }

@@ -1,8 +1,8 @@
 {
     "port": {
         "authenticate": {
-            "test": "449fa1ca9b7bd6a24dd7e7a6afc626e4045a86b9d82a3f068775f7d914a65d5e",
-            "production": "71bc99d3eb3e4b5eb7f596e21eb0eca2d42f1e76f35aef42438dded033c90a70"
+            "production": "71bc99d3eb3e4b5eb7f596e21eb0eca2d42f1e76f35aef42438dded033c90a70",
+            "test": "449fa1ca9b7bd6a24dd7e7a6afc626e4045a86b9d82a3f068775f7d914a65d5e"
         }
     }
 }

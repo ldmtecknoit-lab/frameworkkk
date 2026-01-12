@@ -1,20 +1,20 @@
 {
     "adapter": {
         "read": {
-            "test": "f6b49fc1d9873f521a1d3cece6994274952dc6bfc9cf5dc13b0ce9ee7f426fe7",
-            "production": "b4e6d0a0a4d88aff209c2e3b9c194f13c8df990e1d655754d5b64eec614646ed"
+            "production": "b4e6d0a0a4d88aff209c2e3b9c194f13c8df990e1d655754d5b64eec614646ed",
+            "test": "f6b49fc1d9873f521a1d3cece6994274952dc6bfc9cf5dc13b0ce9ee7f426fe7"
         },
         "create": {
-            "test": "0b5f2958698813a91f683117cc008a4c2ea0e12bbc5129343c0d65ffbd512518",
-            "production": "c7cc1068ce8a0d881eaef015f7519a46d7c18d8b3c8be52c8accc072e4db7519"
+            "production": "c7cc1068ce8a0d881eaef015f7519a46d7c18d8b3c8be52c8accc072e4db7519",
+            "test": "0b5f2958698813a91f683117cc008a4c2ea0e12bbc5129343c0d65ffbd512518"
         },
         "delete": {
-            "test": "e7773f68ea57735e1b48ec5ba26f3d74f8b746ee4661d0511f47c11a2973a3ed",
-            "production": "93ecd1d061507248386a2566ee61c62d047df29e7bcc9f1cfc52bc7f52335c23"
+            "production": "93ecd1d061507248386a2566ee61c62d047df29e7bcc9f1cfc52bc7f52335c23",
+            "test": "e7773f68ea57735e1b48ec5ba26f3d74f8b746ee4661d0511f47c11a2973a3ed"
         },
         "write": {
-            "test": "a678c99845c84ec232a15d560f69ba270d8ce46b3cef2e653e4c9dd7ca632f25",
-            "production": "cc3e78d0ca1ad2b42778d87477783283dec216b0db760bf1e43a6b12665bb6bc"
+            "production": "cc3e78d0ca1ad2b42778d87477783283dec216b0db760bf1e43a6b12665bb6bc",
+            "test": "a678c99845c84ec232a15d560f69ba270d8ce46b3cef2e653e4c9dd7ca632f25"
         }
     }
 }

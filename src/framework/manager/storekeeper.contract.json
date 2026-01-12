@@ -1,28 +1,28 @@
 {
     "storekeeper": {
         "preparation": {
-            "test": "64da1c21cd472fd4651eee74c965ac1209e89605a6007a8cec6e5d6f04e8c7f0",
-            "production": "a0a19712c970a2e86d18d35c542db0d6b84d8cda59e4e443306dce412f12a895"
+            "production": "a0a19712c970a2e86d18d35c542db0d6b84d8cda59e4e443306dce412f12a895",
+            "test": "64da1c21cd472fd4651eee74c965ac1209e89605a6007a8cec6e5d6f04e8c7f0"
         },
         "change": {
-            "test": "4af429fa9d12df02dcde3d1789eb39cfe9de15d1a5b272c52261b46934f671ba",
-            "production": "e7e7017b4e5156e6f58d8603392dc73f950eccd0d0986a91819a7b8977cc9da3"
+            "production": "e7e7017b4e5156e6f58d8603392dc73f950eccd0d0986a91819a7b8977cc9da3",
+            "test": "4af429fa9d12df02dcde3d1789eb39cfe9de15d1a5b272c52261b46934f671ba"
         },
         "remove": {
-            "test": "865bb45cb365a91b4f715c28bdc982bc015486c98be24557722cbe1d8b1eafbc",
-            "production": "4719f93060068099d0a8655e8f5e17f34cf7820c06824b392d82feeb62d79c16"
+            "production": "4719f93060068099d0a8655e8f5e17f34cf7820c06824b392d82feeb62d79c16",
+            "test": "865bb45cb365a91b4f715c28bdc982bc015486c98be24557722cbe1d8b1eafbc"
         },
         "store": {
-            "test": "18c8d5ab8682af6f8e03348db0931b49a6cf61533a2fd215560a761f3cc3eafa",
-            "production": "153985cf584a49d02e2981abcfa99691567f0b87cd05ca3782dd7e343fd131c8"
+            "production": "153985cf584a49d02e2981abcfa99691567f0b87cd05ca3782dd7e343fd131c8",
+            "test": "18c8d5ab8682af6f8e03348db0931b49a6cf61533a2fd215560a761f3cc3eafa"
         },
         "gather": {
-            "test": "548d587d82dac3382c345a077e2572f7fe560036517fec114874943e92a5d397",
-            "production": "ba858de5c9205fc1872c51232bf68d2372da2d33bab960a42b69ce47c54a7bbd"
+            "production": "ba858de5c9205fc1872c51232bf68d2372da2d33bab960a42b69ce47c54a7bbd",
+            "test": "548d587d82dac3382c345a077e2572f7fe560036517fec114874943e92a5d397"
         },
         "overview": {
-            "test": "27263281070b534b52dac19fecbddb18c20374f204a01a352e995567fafe570a",
-            "production": "a1a658f5bc75cfc2d0bb11603178bffc5b9d75b9268bf67816e32d2db9030985"
+            "production": "a1a658f5bc75cfc2d0bb11603178bffc5b9d75b9268bf67816e32d2db9030985",
+            "test": "27263281070b534b52dac19fecbddb18c20374f204a01a352e995567fafe570a"
         }
     }
 }

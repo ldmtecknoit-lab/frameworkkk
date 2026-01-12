@@ -1,16 +1,16 @@
 {
     "executor": {
         "all_completed": {
-            "test": "1d614294007d8917d64087c44fc6091f9b6a21d92548749daac6cb2b476180fc",
-            "production": "b4375e42b9e03a85a3baaf116c13d6f69751164a3e32292b0ed7fcaeb085bf26"
+            "production": "b4375e42b9e03a85a3baaf116c13d6f69751164a3e32292b0ed7fcaeb085bf26",
+            "test": "1d614294007d8917d64087c44fc6091f9b6a21d92548749daac6cb2b476180fc"
         },
         "first_completed": {
-            "test": "5fde6001b2f6062fb6f210626fa5dcb1fe8d0a435817a4b9075f1117e4c8b1d2",
-            "production": "8d41a5fbddd46a5f686e5fcf215b01b733d7eeb63495b868ddb6c0afe46ffaae"
+            "production": "8d41a5fbddd46a5f686e5fcf215b01b733d7eeb63495b868ddb6c0afe46ffaae",
+            "test": "5fde6001b2f6062fb6f210626fa5dcb1fe8d0a435817a4b9075f1117e4c8b1d2"
         },
         "chain_completed": {
-            "test": "2e85022b9019bf2ff6df736d35e45ea186e21e5dd3fc8b8a5258bb6409f73027",
-            "production": "235d1fc55decd2dbaa6c3299efc25b24434af9c28e5b4a05b354358f3f2b549c"
+            "production": "235d1fc55decd2dbaa6c3299efc25b24434af9c28e5b4a05b354358f3f2b549c",
+            "test": "2e85022b9019bf2ff6df736d35e45ea186e21e5dd3fc8b8a5258bb6409f73027"
         }
     }
 }

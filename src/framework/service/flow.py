@@ -9,7 +9,7 @@ import sys
 from typing import Any, Callable, Dict, List, Optional
 from framework.service.context import container
 from framework.service.inspector import framework_log, log_block, _load_resource, buffered_log, analyze_exception, _get_system_info
-from framework.service.schema import convert, get, format, normalize, transform, put, route, mappa
+from framework.service.scheme import convert, get, format, normalize, transform, put, route, mappa
 from framework.service.telemetry import (
     MultiSpanContext, MockSpanContext, 
     get_transaction_id, set_transaction_id, get_requirements,

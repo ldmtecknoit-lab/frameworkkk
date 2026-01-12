@@ -1,12 +1,12 @@
 {
     "adapter": {
         "logout": {
-            "test": "d29355cf6ee55e37c169e70493ae24c490edd1bd4c0e984230341fb5e3c129d8",
-            "production": "4a95fcb4e69b8e45b8342213e6f678d951ddaa647a56b6b9a3bcc940bdec0d35"
+            "production": "4a95fcb4e69b8e45b8342213e6f678d951ddaa647a56b6b9a3bcc940bdec0d35",
+            "test": "d29355cf6ee55e37c169e70493ae24c490edd1bd4c0e984230341fb5e3c129d8"
         },
         "authenticate": {
-            "test": "449fa1ca9b7bd6a24dd7e7a6afc626e4045a86b9d82a3f068775f7d914a65d5e",
-            "production": "db6b869e0fe3f5941ca77c7d0628526c26748c9bc6ebcfd984c9c4fa286b850a"
+            "production": "db6b869e0fe3f5941ca77c7d0628526c26748c9bc6ebcfd984c9c4fa286b850a",
+            "test": "449fa1ca9b7bd6a24dd7e7a6afc626e4045a86b9d82a3f068775f7d914a65d5e"
         }
     }
 }

@@ -1,12 +1,20 @@
 {
     "__module__": {
+        "bootstrap": {
+            "production": "63a4adf104f04ab670b8c7f55d9ba1059a20c575343bb14cd2a73eaf353839e0",
+            "test": "399f4a4c8ef9ee0f705946cb0f7b4049d31fac802727a846d89bd450fde05167"
+        },
         "generate_checksum": {
-            "test": "0c95d2646532345ba5efdea7bcca6d6f37eb15bf70a1daae5afb0f846641778b",
-            "production": "c420149681e9483f7f048e7581f684fc9e9b0bb0544382e6ae008a6e665a054b"
+            "production": "30bd6cb5d05abe3683a9fa523e00fc26ed7b325688b723b1dad80ad1048b076c",
+            "test": "399f4a4c8ef9ee0f705946cb0f7b4049d31fac802727a846d89bd450fde05167"
         },
         "resource": {
-            "test": "338142eb703e766a25b3c2dac96bc58fc147359c7c44626d673231ee90b815af",
-            "production": "244dbb989a68573f72723bef5a1cb9425ab64e42630e4656c45d85a1b5de4b01"
+            "production": "b662b4cc5b6759541429c73ff1661709e47a2198c931a4affda3fe6ef459d994",
+            "test": "399f4a4c8ef9ee0f705946cb0f7b4049d31fac802727a846d89bd450fde05167"
+        },
+        "register": {
+            "production": "3353d671582d64846caddc013fdb9e11606d5871b875e767ba0f39adbe82d316",
+            "test": "399f4a4c8ef9ee0f705946cb0f7b4049d31fac802727a846d89bd450fde05167"
         }
     }
 }

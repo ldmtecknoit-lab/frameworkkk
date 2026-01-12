@@ -1,8 +1,8 @@
 {
     "__module__": {
         "repository": {
-            "test": "56c6b9d422fd007ca4cdf68a81e1ad3e3cda15050a43eebfb096bf2193615598",
-            "production": "e9151f2b459161037a938d36e57b44bd4561fea41330097a070a1d24a2b22ebb"
+            "production": "e9151f2b459161037a938d36e57b44bd4561fea41330097a070a1d24a2b22ebb",
+            "test": "56c6b9d422fd007ca4cdf68a81e1ad3e3cda15050a43eebfb096bf2193615598"
         }
     }
 }

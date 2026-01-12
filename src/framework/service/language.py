@@ -192,9 +192,20 @@ class DSLVisitor:
 
     async def _resolve(self, node, ctx):
         if not isinstance(node, DSLVariable): return node
-        if ctx and node.name in ctx: return await self.visit(ctx[node.name], ctx)
-        if node.name in self.root_data: return await self.visit(self.root_data[node.name], ctx)
-        return self.functions_map.get(node.name, node.name)
+        name = str(node.name)
+        if ctx and name in ctx: return await self.visit(ctx[name], ctx)
+        if name in self.root_data: return await self.visit(self.root_data[name], ctx)
+        
+        # Priority to functions map
+        if name in self.functions_map:
+            return self.functions_map[name]
+            
+        # Fallback to standard types if not shadowed
+        type_map = {'dict': dict, 'list': list, 'str': str, 'int': int, 'float': float, 'bool': bool}
+        if name in type_map:
+            return type_map[name]
+        
+        return name
 
     async def visit(self, node, ctx=None):
         if isinstance(node, dict):
@@ -293,6 +304,10 @@ class DSLVisitor:
         return await self._execute(name, p_args, k_args)
 
     async def _execute(self, name, p_args, k_args):
+        # Resolve any remaining DSLVariables in arguments
+        p_args = [(await self.visit(a)) if type(a).__name__ == 'DSLVariable' else a for a in p_args]
+        k_args = {k: (await self.visit(v)) if type(v).__name__ == 'DSLVariable' else v for k, v in k_args.items()}
+        
         func = self.functions_map.get(name)
         if name == 'include' and p_args:
             path = p_args[0]
@@ -556,8 +571,9 @@ dsl_functions.update({
 def parse_dsl_file(content):
     return ConfigTransformer().transform(Lark(grammar, parser='earley').parse(content))
 
-async def execute_dsl_file(content):
-    return await DSLVisitor(dsl_functions).run(parse_dsl_file(content))
+async def execute_dsl_file(content_or_parsed):
+    parsed = parse_dsl_file(content_or_parsed) if isinstance(content_or_parsed, str) else content_or_parsed
+    return await DSLVisitor(dsl_functions).run(parsed)
 
 async def run_dsl_tests(visitor, parsed_data):
     test_suite = parsed_data.get('test_suite', [])

@@ -1,16 +1,16 @@
 {
     "adapter": {
         "check": {
-            "test": "ce45df761fc046bc83d65641867576c42d3801efe31208701d27f9e0d1a5777b",
-            "production": "251718f41b9c902ed424eaed9b16e8705f16e737e66d28447b9fddc38101cf14"
+            "production": "251718f41b9c902ed424eaed9b16e8705f16e737e66d28447b9fddc38101cf14",
+            "test": "ce45df761fc046bc83d65641867576c42d3801efe31208701d27f9e0d1a5777b"
         },
         "load_policy": {
-            "test": "5023468c4bc4645349d20ef4a60b204f9adef9a9c866873adda72a1215457e2c",
-            "production": "7176913ba025288b1dc4eccafff73e0a065889f215fcf35017a1d311c2b3ea0d"
+            "production": "7176913ba025288b1dc4eccafff73e0a065889f215fcf35017a1d311c2b3ea0d",
+            "test": "5023468c4bc4645349d20ef4a60b204f9adef9a9c866873adda72a1215457e2c"
         },
         "load_policies": {
-            "test": "d7addbf5379cd0ad8f967be095622c0dc179e75be5d819d93519db8a7a11338c",
-            "production": "b5078529082502161b1e9683b9e85558f5c3bb116aa8ec6af93d218d49c978cc"
+            "production": "b5078529082502161b1e9683b9e85558f5c3bb116aa8ec6af93d218d49c978cc",
+            "test": "d7addbf5379cd0ad8f967be095622c0dc179e75be5d819d93519db8a7a11338c"
         }
     }
 }

@@ -34,7 +34,7 @@ def get(data, path, default=None):
 
     # Gestione Wildcard
     if key_str == '*':
-        if isinstance(data, list):
+        if isinstance(data, (list, tuple)):
             return [get(item, rest or '', default) for item in data]
         return default
 

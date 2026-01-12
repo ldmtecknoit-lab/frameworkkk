@@ -1,12 +1,12 @@
 {
     "messenger": {
         "post": {
-            "test": "7db7747f2c4e1b4c5b3d00f8b7e2efd4de6b38c0c7c6e103c13b59ab40ec9566",
-            "production": "26fd9305a53f012bdd9ee5625650031bd8c1ccb3733926feda357ddd5068afbf"
+            "production": "26fd9305a53f012bdd9ee5625650031bd8c1ccb3733926feda357ddd5068afbf",
+            "test": "7db7747f2c4e1b4c5b3d00f8b7e2efd4de6b38c0c7c6e103c13b59ab40ec9566"
         },
         "read": {
-            "test": "d8f4dccb7bfce541b30e10780bc1af20e817b9fe4bc6b8e57ebc1229c8984f66",
-            "production": "bb5bb627590f5d24e14e0222f7435d2cd0eccc930e5c114e1e017e41e2f2f5e6"
+            "production": "bb5bb627590f5d24e14e0222f7435d2cd0eccc930e5c114e1e017e41e2f2f5e6",
+            "test": "d8f4dccb7bfce541b30e10780bc1af20e817b9fe4bc6b8e57ebc1229c8984f66"
         }
     }
 }

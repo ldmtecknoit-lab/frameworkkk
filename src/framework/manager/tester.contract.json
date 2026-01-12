@@ -1,16 +1,16 @@
 {
     "tester": {
         "run": {
-            "test": "0036153f3803261a252a8e2c4c7bcb5ebc3273b9c3f812cd12138d735184b4aa",
-            "production": "88d0d0a73172006133d4d356b35a35a2046bc326e64988f6fa3c0e7bcb4f656d"
+            "production": "88d0d0a73172006133d4d356b35a35a2046bc326e64988f6fa3c0e7bcb4f656d",
+            "test": "0036153f3803261a252a8e2c4c7bcb5ebc3273b9c3f812cd12138d735184b4aa"
         },
         "unittest": {
-            "test": "70cf21f5c884a07c246607ac732bc38afd49cf5a47220d1c32e4553eff972278",
-            "production": "3941712c6bc23e664cf0da89619e7a13903b0eb8292884763675d9da3fe511f6"
+            "production": "3941712c6bc23e664cf0da89619e7a13903b0eb8292884763675d9da3fe511f6",
+            "test": "70cf21f5c884a07c246607ac732bc38afd49cf5a47220d1c32e4553eff972278"
         },
         "discover_tests": {
-            "test": "bc67fd1b778d1752618c946a009680336865c55a36bdbc02fd365be5d44438fd",
-            "production": "42c6520eabe40a8574ad73bd9780d60ce7d53e22a899157673cf7d5d5a94f0c0"
+            "production": "42c6520eabe40a8574ad73bd9780d60ce7d53e22a899157673cf7d5d5a94f0c0",
+            "test": "bc67fd1b778d1752618c946a009680336865c55a36bdbc02fd365be5d44438fd"
         }
     }
 }

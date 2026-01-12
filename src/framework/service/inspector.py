@@ -357,7 +357,23 @@ def analyze_module(source_code: str, module_name: str) -> Dict[str, Any]:
                             "value": var_value,
                         }
                         structure[var_name] = info
-                        
+            
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    name = alias.asname or alias.name
+                    structure[name] = {
+                        "type": "import",
+                        "data": {"lineno": node.lineno, "module": alias.name}
+                    }
+            
+            elif isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    name = alias.asname or alias.name
+                    structure[name] = {
+                        "type": "import",
+                        "data": {"lineno": node.lineno, "module": node.module, "original_name": alias.name}
+                    }
+
     except Exception as e:
         structure["parsing_error"] = f"Errore nell'analisi AST: {type(e).__name__} - {str(e)}"
 
@@ -784,4 +800,25 @@ else:
             return await resp.text()
         except Exception as e:
             raise FileNotFoundError(f"File non trovato (fetch fallito): {path}") from e
+
+async def _save_resource(**kwargs):
+    path = kwargs.get("path", "")
+    content = kwargs.get("content", "")
+    mode = kwargs.get("mode", "w")
+    
+    # Path resolution similar to _load_resource
+    if path.startswith('/'): path = path[1:]
+    
+    # In a real system, we'd handle candidate paths, but typically we save to a specific one
+    # For simplicity in this environment:
+    actual_path = path
+    if not os.path.isabs(path) and not path.startswith('src/'):
+        actual_path = os.path.join('src', path)
+        
+    os.makedirs(os.path.dirname(actual_path), exist_ok=True)
+    with open(actual_path, mode) as f:
+        f.write(content)
+    return True
+
+backend = _save_resource
 
