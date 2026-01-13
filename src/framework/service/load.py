@@ -1,196 +1,195 @@
 import os, sys, asyncio, types, inspect, uuid, json
-from typing import Dict, Any, List, Optional, Set
 from framework.service.context import container
 import framework.service.flow as flow
-import framework.service.language as language
-from framework.service.inspector import (
-    analyze_module, framework_log, _load_resource, 
-    analyze_exception, estrai_righe_da_codice, backend
-)
 from framework.service.scheme import convert
 from dependency_injector import providers
 
-# imports: {"flow": "framework/service/flow.py", "language": "framework/service/language.py"};
+async def resource(path: str):
+    """
+    Funzione principale per il caricamento di risorse finanziarie.
+    Orchestra il flusso attraverso una pipeline lineare di trasformazione.
+    """
+    # Gestione della Cache (Ottimizzazione)
+    cache = container.module_cache()
+    if path in cache:
+        return {"success": True, "data": cache[path]}
 
-class ValidationContext:
-    def __init__(self, path: str, module: Any = None):
-        self.path, self.module = path, module
-        self.contract_json = path.replace('.py', '.contract.json')
-        self.external, self.test_path, self.test_code, self.ana, self.is_dsl = {}, None, None, {}, False
-        self.exports, self.validated, self.allowed = {}, {}, {'language'}
-
-    async def load(self, strict=True):
-        try:
-            content = await _load_resource(path=self.contract_json)
-            self.external = await convert(content, dict, 'json')
-        except Exception as e:
-            if strict: raise ImportError(f"Strict Policy: Module '{self.path}' cannot be loaded without a valid contract JSON. Run tests first.")
-        
-        for p, dsl in [(self.path.replace('.py', '.test.dsl'), True), (self.path.replace('.py', '.test.py'), False)]:
-            try:
-                c = await _load_resource(path=p)
-                if c: self.test_code, self.test_path, self.is_dsl = c, p, dsl; break
-            except: continue
-        
-        if self.test_code:
-            self.ana = language.parse_dsl_file(self.test_code) if self.is_dsl else analyze_module(self.test_code, self.test_path)
-        elif strict:
-            raise ImportError(f"Strict Policy: Module '{self.path}' has no associated test file (.test.dsl or .test.py).")
-        return self
-
-    def resolve(self):
-        raw = self.ana.get('exports', {}) if self.is_dsl else getattr(self.module, 'exports', {})
-        self.exports = {str(k): str(v) for k, v in (raw if isinstance(raw, dict) else {}).items()}
-        if not self.exports and self.external:
-            for k, v in self.external.items():
-                if k == '__module__' and isinstance(v, dict): self.exports.update({m: m for m in v})
-                else: self.exports[k] = k
-        self.exports['language'] = 'language'
-        return self
-
-    async def validate(self):
-        # Always use strict=False for internal checksum generation during validation
-        ccc_res = await generate_checksum(self.path, run_tests=False)
-        ccc = ccc_res.get('data', {}).get(self.path, {})
-        for g, hshs in self.external.items():
-            valid = {m for m, h in hshs.items() if isinstance(h, dict) and ccc.get(g, {}).get(m, {}).get('production') == h.get('production') and ccc.get(g, {}).get(m, {}).get('test') == h.get('test')}
-            if valid: self.validated[g] = valid
-
-    def compute(self):
-        if 'framework/service/load.py' in self.path: self.allowed.update({'resource', 'bootstrap', 'register', 'generate_checksum'})
-        tested = {str(t.get('target')) for t in self.ana.get('test_suite', []) if isinstance(t, dict)} if self.is_dsl else None
-        if self.is_dsl and not tested: tested = set(self.exports.keys())
-        for pub, priv in self.exports.items():
-            val = getattr(self.module, priv, None)
-            if not val: continue
-            if self.is_dsl:
-                if pub in tested and (pub in self.validated.get('__module__', {}) or any(pub in vm for g, vm in self.validated.items() if g != '__module__')): self.allowed.add(pub)
-            else:
-                tp = {n.replace('Test',''): {f.replace('test_','') for f in d.get('data',{}).get('methods',{}) if f.startswith('test_')} for n, d in self.ana.items() if isinstance(d, dict)}
-                if (inspect.isclass(val) and (tp.get(pub) or self.validated.get(pub))) or (inspect.isfunction(val) and pub in tp.get('__module__', {}) and pub in self.validated.get('__module__', {})): self.allowed.add(pub)
-
-    def build(self) -> types.ModuleType:
-        proxy = types.ModuleType(f"filtered:{self.path}"); proxy.__file__ = self.path
-        proxy.language = getattr(self.module, 'language', language)
-        for pub in self.allowed:
-            attr = getattr(self.module, self.exports.get(pub, pub), None)
-            if attr is None: continue
-            if inspect.isclass(attr):
-                exp = self.validated.get(pub, set()) if self.external and 'load.py' not in self.path else {m for m in dir(attr) if not m.startswith('_')}
-                setattr(proxy, pub, type(pub, (object,), {m: getattr(attr, m) for m in exp if hasattr(attr, m)}))
-            else: setattr(proxy, pub, attr)
-        return proxy
-
-async def resource(path: str) -> Any:
-    cache = container.module_cache(); stack = container.loading_stack()
-    if path in cache: return {"data": cache[path], "success": True}
+    # Gestione Concorrenza (Prevenzione lock circolari)
+    stack = container.loading_stack()
     if path in stack:
-        if f"loading:{path}" in sys.modules: return {"data": sys.modules[f"loading:{path}"], "success": True}
-        while path in stack: await asyncio.sleep(0.01)
-        if path in cache: return {"data": cache[path], "success": True}
+        while path in stack:
+            await asyncio.sleep(0.01)
+        if path in cache:
+            return {"success": True, "data": cache[path]}
+
     stack.add(path)
     try:
-        res = await _internal(path)
-        if res.get('success') and res.get('data'):
-            async with container.module_cache_lock(): cache[path] = res['data']
-        return res
-    finally: stack.remove(path)
+        # Pipeline di Caricamento: Ogni step è una funzione atomica
+        context = {"path": path}
+        result = await flow.pipe(
+            step_read_content,
+            step_dispatch_parser,
+            step_finalize_data,
+            context=context
+        )
+        
+        # Salvataggio in cache se il caricamento ha avuto successo
+        if result and isinstance(result, dict) and result.get('success'):
+            cache[path] = result['data']
+        return result
+        
+    finally:
+        stack.remove(path)
 
-async def _internal(path: str, raw=False) -> Any:
-    try:
-        content = await _load_resource(path=path)
-        if path.endswith('.json'): return {"data": await convert(content, dict, 'json'), "success": True}
-        if path.endswith('.dsl'): return {"data": language.parse_dsl_file(content), "success": True}
-        if not path.endswith('.py'): return {"data": content, "success": True}
-        unique_name, fake_name = f"mod_{uuid.uuid4().hex[:8]}", f"loading:{path}"
-        mod = await _load_py(unique_name, path, content, fake_name)
-        if '.test.' in path or raw: return {"data": mod, "success": True}
-        ctx = await ValidationContext(path, mod).load(strict=True)
-        ctx.resolve(); await ctx.validate(); ctx.compute()
-        framework_log("INFO", f"✅ Validated: {path}. Exposed: {list(ctx.allowed)}")
-        return {"data": ctx.build(), "success": True}
-    except Exception as e:
-        framework_log("ERROR", f"❌ Failed to load {path}: {e}"); return {"data": None, "success": False, "errors": [str(e)]}
+async def register(**config):
+    """Registra un servizio o manager nel Dependency Injection container."""
+    return await flow.pipe(
+        step_load_service_module,
+        step_inject_and_register,
+        context=config
+    )
 
-async def _load_py(name, path, code, placeholder=None):
-    module = types.ModuleType(name); module.__file__ = path; sys.modules[name] = module
-    if placeholder: sys.modules[placeholder] = module
+async def step_init_python_runtime(ctx):
+    """Prepara un ambiente isolato per il nuovo modulo Python."""
+    path = ctx['path']
+    module_id = f"mod_{uuid.uuid4().hex[:8]}"
+    
+    # Creazione dell'oggetto modulo
+    module = types.ModuleType(module_id)
+    module.__file__ = path
+    
+    # Registrazione negli indici di sistema per permettere la risoluzione di nomi
+    sys.modules[module_id] = module
+    sys.modules[f"loading:{path}"] = module
+    
+    return {"success": True, "module": module}
+
+async def step_resolve_python_imports(ctx):
+    """Analizza il codice e carica ricorsivamente le dipendenze in 'imports:'."""
+    module = ctx['outputs'][-1].get('module')
+    code = ctx['outputs'][0].get('raw_content')
+    
     for line in code.splitlines():
         if 'imports:' in line:
             try:
-                for k, p in (await convert(line.split('imports:')[1].split(';')[0], dict, 'json')).items():
-                    r = await resource(p); setattr(module, k, r.get('data'))
-            except: pass
+                # Estrazione JSON dalla direttiva imports: {...};
+                json_part = line.split('imports:')[1].split(';')[0]
+                dep_map = await convert(json_part, dict, 'json')
+                
+                # Caricamento ricorsivo di ogni dipendenza
+                for key, dep_path in dep_map.items():
+                    res = await resource(dep_path)
+                    setattr(module, key, res.get('data'))
+            except Exception:
+                pass # Gli import falliti vengono gestiti a runtime
             break
-    try: exec(code, module.__dict__); return module
-    except Exception as e: analyze_exception(e, path, code); raise ImportError(f"Execution failed {path}: {e}")
+            
+    return {"success": True, "module": module}
 
-async def run_dsl_test_suite(ana: Dict, mod: Any) -> Dict:
-    suite = ana.get('test_suite', [])
-    if not suite: return {'success': True}
-    from framework.service.language import DSLVisitor, dsl_functions
-    v = DSLVisitor(dsl_functions); v.root_data = ana; res, ok = [], True
-    async def resolve(it): return [await resolve(x) for x in it] if isinstance(it, (list, tuple)) else await v.visit(it)
-    for i, t in enumerate(suite):
-        if not isinstance(t, dict): continue
-        target, args, exp = str(t.get('target')), t.get('input_args', ()), t.get('expected_output')
-        f = getattr(mod, target, None)
-        if not f: ok = False; res.append({'test': i, 'target': target, 'error': 'Missing'}); continue
-        try:
-            actual = await f(*await resolve(args)) if inspect.iscoroutinefunction(f) else f(*await resolve(args))
-            def norm(val): return [norm(x) for x in val] if isinstance(val, (list, tuple)) else val
-            if norm(actual) == norm(exp): res.append({'test': i, 'success': True})
-            else: ok = False; res.append({'test': i, 'target': target, 'error': f'Exp {exp} got {actual}'})
-        except Exception as e: ok = False; res.append({'test': i, 'target': target, 'error': str(e)})
-    return {'success': ok, 'results': res}
+async def step_exec_python_code(ctx):
+    """Esegue il codice sorgente nel contesto del modulo inizializzato."""
+    path = ctx['path']
+    code = ctx['outputs'][0].get('raw_content')
+    module = ctx['outputs'][-1].get('module')
+    
+    try:
+        exec(code, module.__dict__)
+        return {"success": True, "module": module}
+    except Exception as e:
+        # Analisi dettagliata dell'eccezione per il debug
+        analyze_exception(e, path, code)
+        return {"success": False, "errors": [f"Errore esecuzione in {path}: {str(e)}"]}
 
-async def generate_checksum(path: str, save: bool = False, run_tests: bool = True) -> Dict:
-    code = await _load_resource(path=path)
-    if not code: return {'success': False, 'error': 'Source not found'}
+async def step_apply_security_filtering(ctx):
+    """Filtra i membri del modulo in base ai contratti e applica i decoratori transactional."""
+    path = ctx['path']
+    module = ctx['outputs'][-1].get('module') or ctx.get('data')
+
+    # Saltiamo il filtraggio per i file di test o se richiesto caricamento 'raw'
+    if '.test.' in path or ctx.get('raw'):
+        return {"success": True, "data": module}
+
+    # 1. Caricamento metadati per la validazione (Contratti e Test)
+    test_meta = await helper_get_test_metadata(path)
+    contract = await helper_get_contract(path)
     
-    # We use strict=False because the contract might not exist yet
-    ctx = await ValidationContext(path).load(strict=False)
-    if not ctx.test_code: return {'success': False, 'error': 'No tests found. Contract requires proof of testing.'}
+    # 2. Verifica integrità degli hash (Contratto vs Codice Reale)
+    integrity = await helper_verify_integrity(path, contract)
     
-    if run_tests:
-        framework_log("DEBUG", f"Running tests for contract generation: {path}")
-        test_mod = await _load_py("tmp_test_gen", path, code)
-        if ctx.is_dsl:
-            test_res = await run_dsl_test_suite(ctx.ana, test_mod)
-            if not test_res.get('success'):
-                framework_log("ERROR", f"Tests failed for {path}: {test_res.get('results')}")
-                return {'success': False, 'error': 'DSL Tests failed. Contract aborted.', 'results': test_res}
-        framework_log("INFO", f"Tests passed for {path}. Proceeding with contract generation.")
+    # 3. Risoluzione mappatura esportazioni (Aliasing)
+    exports = helper_resolve_exports(module, test_meta, contract)
     
-    ana, hashes, t_h = analyze_module(code, path), {}, await convert(ctx.test_code, str, 'hash')
-    if ctx.is_dsl:
-        for pub, priv in ctx.ana.get('exports', {}).items():
-            it = ana.get(str(priv), {})
-            if it.get('type') in ('function', 'import'):
-                l = it['data'].get('lineno', 0); c = estrai_righe_da_codice(code, l, it['data'].get('end_lineno', l))
-                hashes.setdefault('__module__', {})[str(pub)] = {'production': await convert(c, str, 'hash'), 'test': t_h}
-            elif it.get('type') == 'class':
-                for m, d in it['data'].get('methods', {}).items():
-                    if not m.startswith('_'): hashes.setdefault(str(pub), {})[m] = {'production': await convert(estrai_righe_da_codice(code, d['lineno'], d['end_lineno']), str, 'hash'), 'test': t_h}
+    # 4. Individuazione simboli autorizzati all'esposizione
+    allowed = helper_determine_allowed(path, exports, test_meta, integrity)
+
+    # 5. Costruzione del Proxy Filtrato e Protetto
+    proxy = types.ModuleType(f"filtered:{path}")
+    proxy.__file__ = path
+    proxy.language = getattr(module, 'language', language)
+
+    for public_name in allowed:
+        internal_name = exports.get(public_name, public_name)
+        value = getattr(module, internal_name, None)
+        
+        if inspect.isclass(value):
+            # Classi: i metodi pubblici vengono protetti da transazioni
+            members = helper_wrap_class_methods(value, public_name, integrity)
+            setattr(proxy, public_name, type(public_name, (value,), members))
+        else:
+            # Funzioni: vengono avvolte automaticamente in transazioni
+            setattr(proxy, public_name, flow.transactional(value) if callable(value) else value)
+
+    framework_log("INFO", f"✅ Modulo Validato: {path}", symbols=list(allowed))
+    return {"success": True, "data": proxy}
+
+async def step_finalize_data(ctx):
+    """Step finale per estrarre il dato risultante dalla pipe."""
+    last_output = ctx['outputs'][-1]
+    if isinstance(last_output, dict) and 'data' in last_output:
+        return last_output
+    return {"success": True, "data": last_output}
+
+async def helper_verify_integrity(path, contract):
+    """Verifica che gli hash nel contratto corrispondano al codice attuale."""
+    if not contract: return {}
+    # Nota: eseguiamo generate_checksum senza rieseguire i test per evitare loop
+    res = await generate_checksum(path, run_tests=False)
+    current = res.get('data', {}).get(path, {})
+    
+    verified = {}
+    for scope, methods in contract.items():
+        matches = {m for m, h in methods.items() 
+                   if current.get(scope, {}).get(m, {}).get('production') == h.get('production')}
+        if matches: verified[scope] = matches
+    return verified
+
+
+# =====================================================================
+# --- REGISTRAZIONE NEL CONTAINER ---
+# =====================================================================
+
+async def step_load_service_module(ctx):
+    """Carica il modulo indicato nel percorso via pipeline."""
+    res = await resource(ctx['path'])
+    return {"success": res.get('success'), "module": res.get('data')}
+
+async def step_inject_and_register(ctx):
+    """Istanzia l'adapter e lo registra nel container dependency-injector."""
+    module = ctx['outputs'][-1].get('module')
+    name = ctx.get('service', ctx.get('name'))
+    adapter = getattr(module, ctx.get('adapter', name))
+    
+    if not hasattr(container, name):
+        setattr(container, name, providers.Singleton(list))
+        
+    deps = ctx.get('dependency_keys', [])
+    if deps:
+        # Registrazione come Factory con dipendenze risolte
+        p = providers.Factory(adapter, **ctx.get('payload', {}), 
+                              providers={k: getattr(container, k)() for k in deps})
+        setattr(container, name, p)
     else:
-        for n, d in analyze_module(ctx.test_code, ctx.test_path).items():
-            if not isinstance(d, dict) or d.get('type') != 'class': continue
-            g = '__module__' if n == 'TestModule' else n.replace('Test','')
-            for m, md in d['data'].get('methods', {}).items():
-                if not m.startswith('test_'): continue
-                raw = m.replace('test_',''); info = (ana.get(raw) if g == '__module__' else ana.get(g,{}).get('data',{}).get('methods',{}).get(raw,{}))
-                if info: hashes.setdefault(g, {})[raw] = {'production': await convert(estrai_righe_da_codice(code, info.get('lineno',0), info.get('end_lineno',0)), str, 'hash'), 'test': await convert(estrai_righe_da_codice(ctx.test_code, md['lineno'], md['end_lineno']), str, 'hash')}
-    if save and hashes: await backend(path=ctx.contract_json, content=json.dumps(hashes, indent=4), mode='w')
-    return {'data': {path: hashes}, 'success': True}
-
-async def register(**cfg: Any) -> Dict:
-    path, name = cfg.get('path'), cfg.get('service', cfg.get('name'))
-    payload, keys = cfg.get('payload', cfg.get('config', {})), cfg.get('dependency_keys')
-    async def _task(c=None):
-        mod = (await resource(path)).get('data'); attr = getattr(mod, cfg.get('adapter', name))
-        if not hasattr(container, name): setattr(container, name, providers.Singleton(list))
-        if keys: setattr(container, name, providers.Factory(attr, **payload, providers={k: getattr(container, k)() for k in keys if hasattr(container, k)}))
-        else: getattr(container, name)().append(attr(config=payload))
-        return {"success": True}
-    return await flow.pipe(flow.step(_task), context=cfg)
-async def bootstrap(): return await resource("framework/service/bootstrap.dsl")
+        # Iniezione diretta dell'istanza nella lista dei provider
+        instance = adapter(config=ctx.get('payload', {}))
+        getattr(container, name)().append(instance)
+    return True

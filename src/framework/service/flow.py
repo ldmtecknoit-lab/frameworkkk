@@ -1,11 +1,10 @@
-
+import uuid
+import sys
 import asyncio
-import time
 import functools
 import inspect
 import json
-import uuid
-import sys
+import time
 from typing import Any, Callable, Dict, List, Optional
 from framework.service.context import container
 from framework.service.inspector import framework_log, log_block, _load_resource, buffered_log, analyze_exception, _get_system_info
@@ -15,11 +14,6 @@ from framework.service.telemetry import (
     get_transaction_id, set_transaction_id, get_requirements,
     _transaction_id, _requirements, _setup_transaction_context
 )
-
-# Globals inherited
-_throttle_state = {}
-_active_events = {}
-_event_payloads = {}
 
 async def _execute_step_internal(action_step, context=dict()) -> Any:
     """
@@ -82,7 +76,7 @@ async def _execute_step_internal(action_step, context=dict()) -> Any:
     
     return {"success": True, "data": result, "errors": []}
 
-def _prepare_async_context(custom_filename, **constants):
+def _prepare_action_context(custom_filename, **constants):
     """Prepara requirements, manager_names e schema path per il decoratore."""
     known_params = {'managers', 'outputs', 'inputs'}
     requirements = {k: v for k, v in constants.items() if k not in known_params}
@@ -94,6 +88,49 @@ def _prepare_async_context(custom_filename, **constants):
          output_schema_path = constants['outputs']
          
     return requirements, manager_names, output_schema_path
+
+def _execute_wrapper_sync(function, args, kwargs, manager_names, current_tx_id):
+    """Esegue la funzione wrappata (sincrona) e arricchisce il risultato."""
+    inject = []
+    for m in manager_names:
+        if hasattr(container, m):
+            inject.append(getattr(container, m)())
+        else:
+            framework_log("WARNING", f"Manager '{m}' richiesto da {function.__name__} non trovato.")
+            
+    args_inject = list(args) + inject
+    
+    # Esecuzione diretta
+    try:
+        # Nota: qui non usiamo _execute_step_internal perché è async, 
+        # ma ne replichiamo la logica di iniezione contesto se necessario
+        sig = inspect.signature(function)
+        if 'context' in sig.parameters and 'context' not in kwargs:
+             kwargs['context'] = {}
+             
+        result = function(*args_inject, **kwargs)
+        
+        # Auto-wrapping
+        if isinstance(result, dict) and 'success' in result and ('data' in result or 'errors' in result):
+            transaction = result
+        else:
+            transaction = {"success": True, "data": result, "errors": []}
+    except Exception as e:
+        raise e
+
+    transaction['identifier'] = current_tx_id
+    return transaction
+
+def _normalize_wrapper_sync(transaction, output_schema_path, wrapper_func, kwargs, current_tx_id):
+    """Gestisce la normalizzazione sincrona (limitata o via helper)."""
+    # Se lo schema è un path, in sincrono è complesso caricarlo async. 
+    # Per ora gestiamo solo se è già un dict o lo saltiamo nel wrapper sincrono se non strettamente necessario.
+    # In una versione più avanzata, potremmo pre-caricare gli schemi al bootstrap.
+    if isinstance(output_schema_path, dict):
+        # Implementazione ipotetica di normalize_sync
+        pass
+    
+    return transaction
 
 async def _execute_wrapper(function, args, kwargs, manager_names, current_tx_id):
     """Esegue la funzione wrappata e arricchisce il risultato."""
@@ -173,72 +210,56 @@ def _handle_wrapper_error(e, function, custom_filename, current_tx_id):
         "identifier": current_tx_id
     }
 
-def asynchronous(custom_filename: str = __file__, app_context = None, **constants):
-    requirements, manager_names, output_schema_path = _prepare_async_context(custom_filename, **constants)
+def action(custom_filename: str = __file__, app_context = None, **constants):
+    """
+    Decoratore polimorfico che fonde logica sincrona e asincrona.
+    Gestisce iniezione dipendenze, telemetria, contratti e transazionalità.
+    """
+    requirements, manager_names, output_schema_path = _prepare_action_context(custom_filename, **constants)
 
     def decorator(function):
-        @functools.wraps(function)
-        async def wrapper(*args, **kwargs):
-            wrapper._is_decorated = True
-            
-            # 1. Setup Context
-            current_tx_id, tx_token = _setup_transaction_context()
-            req_token = _requirements.set(requirements)
-            
-            try:
-                # --- OpenTelemetry Hook ---
-                telemetry_list = getattr(container, 'telemetry', lambda: [])()
-                span_name = f"async:{function.__name__}"
-                
-                with MultiSpanContext(telemetry_list, span_name):
-                    # 2. Execute & Enrich
-                    transaction = await _execute_wrapper(function, args, kwargs, manager_names, current_tx_id)
-                    
-                    # 3. Normalize
-                    return await _normalize_wrapper(transaction, output_schema_path, wrapper, kwargs, current_tx_id)
-
-            except Exception as e:
-                # 4. Error Handling
-                return _handle_wrapper_error(e, function, custom_filename, current_tx_id)
-
-            finally:
-                # Cleanup
-                _requirements.reset(req_token)
-                if tx_token:
-                    _transaction_id.reset(tx_token)
-
-        return wrapper
-    return decorator
-
-def synchronous(custom_filename: str = __file__, app_context = None,**constants):
-    
-    manager_names = list(constants.get('managers', []))
-    output = constants.get('outputs', [])
-    input = constants.get('inputs', [])
-    
-    def decorator(function):
-        @functools.wraps(function)
-        def wrapper(*args, **kwargs):
-            wrapper._is_decorated = True
-            try:
-                # Resolve managers at runtime
-                inject = [getattr(container, m)() for m in manager_names if hasattr(container, m)]
-                args_inject = list(args) + inject
-                outcome = function(*args_inject, **kwargs)
-                return outcome
-            except Exception:
+        if asyncio.iscoroutinefunction(function):
+            @functools.wraps(function)
+            async def wrapper(*args, **kwargs):
+                wrapper._is_decorated = True
+                current_tx_id, tx_token = _setup_transaction_context()
+                req_token = _requirements.set(requirements)
                 try:
-                    source_code = inspect.getsource(function)
-                except KeyboardInterrupt:
-                    print("Interruzione da tastiera (Ctrl + C).")
-                except (OSError, TypeError):
-                    source_code = ""
-
-            finally:
-                set_transaction_id(None)
-                pass
-        return wrapper
+                    telemetry_list = getattr(container, 'telemetry', lambda: [])()
+                    span_name = f"async:{function.__name__}"
+                    with MultiSpanContext(telemetry_list, span_name):
+                        transaction = await _execute_wrapper(function, args, kwargs, manager_names, current_tx_id)
+                        return await _normalize_wrapper(transaction, output_schema_path, wrapper, kwargs, current_tx_id)
+                except Exception as e:
+                    return _handle_wrapper_error(e, function, custom_filename, current_tx_id)
+                finally:
+                    _requirements.reset(req_token)
+                    if tx_token: _transaction_id.reset(tx_token)
+            return wrapper
+        else:
+            @functools.wraps(function)
+            def wrapper(*args, **kwargs):
+                wrapper._is_decorated = True
+                current_tx_id, tx_token = _setup_transaction_context()
+                req_token = _requirements.set(requirements)
+                try:
+                    telemetry_list = getattr(container, 'telemetry', lambda: [])()
+                    span_name = f"sync:{function.__name__}"
+                    with MultiSpanContext(telemetry_list, span_name):
+                        transaction = _execute_wrapper_sync(function, args, kwargs, manager_names, current_tx_id)
+                        # Normalizzazione sincrona (limitata se richiede I/O async)
+                        return transaction
+                except Exception as e:
+                    return _handle_wrapper_error(e, function, custom_filename, current_tx_id)
+                finally:
+                    _requirements.reset(req_token)
+                    if tx_token: _transaction_id.reset(tx_token)
+            return wrapper
     return decorator
+
+# Alias per compatibilità con il codice esistente
+asynchronous = action
+synchronous = action
 
 def step(func, *args, **kwargs):
     return (func, args, kwargs)
@@ -290,6 +311,50 @@ async def safe(func: Callable, *args, **kwargs) -> Dict[str, Any]:
             "data": None, 
             "errors": [{"type": type(e).__name__, "message": str(e)}]
         }
+
+def transactional(func):
+    """
+    Assicura che il risultato di una funzione sia sempre conforme a transaction.json.
+    """
+    if not callable(func) or getattr(func, '_is_transactional', False):
+        return func
+
+    if asyncio.iscoroutinefunction(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            try:
+                result = await func(*args, **kwargs)
+                if isinstance(result, dict) and 'success' in result and ('data' in result or 'errors' in result):
+                    return result
+                return {"success": True, "data": result, "errors": []}
+            except Exception as e:
+                return {"success": False, "data": None, "errors": [str(e)]}
+        wrapper._is_transactional = True
+        return wrapper
+    else:
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                result = func(*args, **kwargs)
+                if inspect.isawaitable(result):
+                    async def await_result():
+                        try:
+                            res = await result
+                            if isinstance(res, dict) and 'success' in res and ('data' in res or 'errors' in res):
+                                return res
+                            return {"success": True, "data": res, "errors": []}
+                        except Exception as e:
+                            return {"success": False, "data": None, "errors": [str(e)]}
+                    return await_result()
+                
+                if isinstance(result, dict) and 'success' in result and ('data' in result or 'errors' in result):
+                    return result
+                return {"success": True, "data": result, "errors": []}
+            except Exception as e:
+                return {"success": False, "data": None, "errors": [str(e)]}
+        
+        wrapper._is_transactional = True
+        return wrapper
 
 async def branch(on_success: Callable, on_failure: Callable, context=dict()):
     """
