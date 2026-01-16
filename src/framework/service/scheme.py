@@ -6,7 +6,7 @@ import copy
 from urllib.parse import urlparse, urlencode
 from jinja2 import Environment
 from cerberus import Validator
-from framework.service.inspector import LogReportEncoder, framework_log, buffered_log, _load_resource
+from framework.service.diagnostic import LogReportEncoder, framework_log, buffered_log, _load_resource
 
 mappa = {
     (str,dict,''): lambda v: v if isinstance(v, dict) else {},

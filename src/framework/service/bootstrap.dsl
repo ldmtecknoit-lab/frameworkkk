@@ -22,19 +22,19 @@
     );
 
     managers : (
-        {"path": "framework/manager/messenger.py"; "service": "messenger"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("message"); "messenger": "messenger"; },
-        {"path": "framework/manager/executor.py"; "service": "executor"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("actuator"); "messenger": "executor"; },
-        {"path": "framework/manager/presenter.py"; "service": "presenter"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("messenger"); "messenger": "presenter"; },
-        {"path": "framework/manager/defender.py"; "service": "defender"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("authentication"); "messenger": "defender"; },
-        {"path": "framework/manager/storekeeper.py"; "service": "storekeeper"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("persistence"); "messenger": "storekeeper"; },
-        {"path": "framework/manager/tester.py"; "service": "tester"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("messenger","persistence"); "messenger": "tester"; }
+        {"path": "framework/manager/tester.py"; "service": "tester"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("messenger","persistence"); "manager": "tester"; },
+        {"path": "framework/manager/messenger.py"; "service": "messenger"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("message"); "manager": "messenger"; },
+        {"path": "framework/manager/executor.py"; "service": "executor"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("actuator"); "manager": "executor"; },
+        {"path": "framework/manager/presenter.py"; "service": "presenter"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("messenger"); "manager": "presenter"; },
+        {"path": "framework/manager/defender.py"; "service": "defender"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("authentication"); "manager": "defender"; },
+        {"path": "framework/manager/storekeeper.py"; "service": "storekeeper"; "config": {"cache_enabled": True; "log_level": "INFO";}; "dependency_keys": ("persistence"); "manager": "storekeeper"; }
     );
     
-    # Registrazione dei servizi e manager PRIMA degli eventi
+    # Registrazione dei servizi (Infrastruttura) e poi dei manager
     services_list : static_services | merge(dynamic_services);
     
-    registered_managers : managers | foreach(register);
     registered_services : services_list | foreach(register);
+    registered_managers : managers | foreach(register);
 
     # Listener degli eventi
     messenger.read(domain:'ciao'): messenger.post(message:"Hello World")|print;

@@ -412,6 +412,8 @@ async def _dsl_load_service(func_name, *args, **kw):
         res = await func(*args, **kw)
         return res.get('data', res) if isinstance(res, dict) else res
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         framework_log("ERROR", f"Error {func_name}: {e}", emoji="❌"); return None
 
 class LazyService:

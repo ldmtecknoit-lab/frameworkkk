@@ -1,6 +1,6 @@
 import re
 import framework.service.language as language
-from framework.service.inspector import framework_log
+from framework.service.diagnostic import framework_log
 
 class repository():
     def __init__(self, **constants):

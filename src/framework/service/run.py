@@ -2,7 +2,7 @@ import asyncio
 import sys
 import os
 import json
-from framework.service.inspector import framework_log
+from framework.service.diagnostic import framework_log
 
 imports = {
     'loader': 'framework/service/load.py',

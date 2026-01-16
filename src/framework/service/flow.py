@@ -7,7 +7,7 @@ import json
 import time
 from typing import Any, Callable, Dict, List, Optional
 from framework.service.context import container
-from framework.service.inspector import framework_log, log_block, _load_resource, buffered_log, analyze_exception, _get_system_info
+from framework.service.diagnostic import framework_log, log_block, _load_resource, buffered_log, analyze_exception, _get_system_info
 from framework.service.scheme import convert, get, format, normalize, transform, put, route, mappa
 from framework.service.telemetry import (
     MultiSpanContext, MockSpanContext, 
@@ -60,12 +60,16 @@ async def _execute_step_internal(action_step, context=dict()) -> Any:
         sig = inspect.signature(fun)
         if 'context' in sig.parameters:
             kwargs['context'] = context
+        elif 'ctx' in sig.parameters:
+            kwargs['ctx'] = context
         result = await fun(*args, **kwargs)
     else:
         # Inspect the function to see if it accepts 'context'
         sig = inspect.signature(fun)
         if 'context' in sig.parameters:
             kwargs['context'] = context
+        elif 'ctx' in sig.parameters:
+            kwargs['ctx'] = context
         result = fun(*args, **kwargs)
         if asyncio.iscoroutine(result):
             result = await result
@@ -277,8 +281,9 @@ async def pipe(*stages, context=dict()):
         telemetry_list = getattr(container, 'telemetry', lambda: [])()
         
         with MultiSpanContext(telemetry_list, "pipe_execution"):
-            for stage_tuple in stages:
+            for stage in stages:
                 stage_index += 1
+                stage_tuple = stage if isinstance(stage, (tuple, list)) else (stage, (), {})
                 step_name = getattr(stage_tuple[0], '__name__', str(stage_tuple[0]))
                 
                 with log_block(f"Step {stage_index}: {step_name}", level="TRACE", emoji="👣"):

@@ -5,7 +5,8 @@ import sys
 import io
 import asyncio
 import inspect
-from framework.service.inspector import framework_log
+from framework.service.diagnostic import framework_log
+import framework.service.language as language
 
 class tester():
 
@@ -13,8 +14,9 @@ class tester():
         self.sessions = dict()
         self.providers = constants['providers']
 
-    def discover_tests(self):
+    async def discover_tests(self):
         # Pattern personalizzato per i test
+        import framework.service.load as loader
         test_dir = './src'
         test_suite = unittest.TestSuite()
         
@@ -23,17 +25,26 @@ class tester():
             for file in files:
                 if file.endswith('.test.py'):
                     # Crea il nome del modulo di test per ciascun file trovato
-                    module_name = os.path.splitext(file)[0]
-                    module_path = os.path.join(root, file)
+                    module_path = os.path.join(root, file).replace('./','')
                     
-                    # Importa il modulo di test dinamicamente
+                    # Importa il modulo di test dinamicamente via loader
                     try:
-                        module = language.get_module_os(module_path,language)
-                        # Aggiungi i test dal modulo
-                        test_suite.addTest(unittest.defaultTestLoader.loadTestsFromModule(module))
-                    except ImportError as e:
-                        framework_log("ERROR", f"Errore nell'importazione del modulo: {module_path}, {e}", emoji="❌")
+                        res = await loader.resource(path=module_path)
+                        if res.get('success'):
+                            module = res['data']
+                            # Aggiungi i test dal modulo
+                            test_suite.addTest(unittest.defaultTestLoader.loadTestsFromModule(module))
+                    except Exception as e:
+                        framework_log("ERROR", f"Errore caricamento test {module_path}: {e}", emoji="❌")
         return test_suite
+    
+    async def run(self,**constants):
+        framework_log("INFO", "Avvio esecuzione suite di test...", emoji="🧪")
+        suite = await self.discover_tests()
+        runner = unittest.TextTestRunner()
+        # Nota: unittest standard non è async, ma IsolatedAsyncioTestCase sì.
+        # Il runner di base funziona se i test stessi gestiscono il loop.
+        runner.run(suite)
     
     async def unittest2(self, code: str, **constants):
         def get_test_methods( suite):
@@ -170,6 +181,93 @@ class tester():
         return results
 
 
+
+    async def dsl(self, **kwargs):
+        """
+        Esegue i test definiti in un file DSL o in una struttura dati DSL.
+        Supporta la verifica di hash (integrità) e casi di test TDD.
+        """
+        from framework.service.load import resource, helper_verify_integrity, helper_get_contract
+        
+        path = kwargs.get('path')
+        parsed = kwargs.get('data') or kwargs.get('parsed')
+        
+        if path and not parsed:
+            res = await resource(path)
+            if res.get('success'):
+                parsed = res.get('data')
+        
+        if not parsed:
+             return {"success": False, "errors": ["DSL non caricabile o non fornito"]}
+
+        # 1. Verifica Integrità (Hash) se possibile
+        integrity_results = {}
+        source_path = parsed.get('source') or (path.replace('.test.dsl', '.py') if path and '.test.dsl' in path else None)
+        
+        if source_path:
+            try:
+                contract = await helper_get_contract(source_path)
+                if contract:
+                    integrity_results = await helper_verify_integrity(source_path, contract)
+            except Exception as e:
+                framework_log("WARNING", f"Errore verifica integrità per {source_path}: {e}")
+
+        # 2. Esecuzione Test Suite (TDD)
+        test_suite = parsed.get('test_suite', [])
+        if isinstance(test_suite, dict): test_suite = [test_suite]
+        
+        results = {
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "errors": [],
+            "details": [],
+            "integrity": integrity_results
+        }
+        
+        visitor = language.DSLVisitor(language.dsl_functions)
+        await visitor.run(parsed)
+
+        for test in test_suite:
+            if not isinstance(test, dict): continue
+            results["total"] += 1
+            target = test.get('target')
+            args = test.get('input_args', ())
+            if not isinstance(args, (list, tuple)):
+                args = (args,)
+            
+            expected = test.get('expected_output')
+            
+            try:
+                target_def = parsed.get(target)
+                if isinstance(target_def, tuple) and len(target_def) == 3:
+                    actual = await visitor.execute_dsl_function(target_def, args)
+                else: 
+                    actual = await visitor.visit(target_def)
+                
+                if actual == expected:
+                    results["passed"] += 1
+                    results["details"].append({"target": target, "status": "OK"})
+                else:
+                    results["failed"] += 1
+                    results["details"].append({
+                        "target": target, 
+                        "status": "FAIL", 
+                        "expected": expected, 
+                        "actual": actual
+                    })
+            except Exception as e:
+                results["failed"] += 1
+                results["errors"].append({"target": target, "error": str(e)})
+                results["details"].append({"target": target, "status": "ERROR", "message": str(e)})
+
+        framework_log("INFO", f"DSL Test {path or 'Inline'}: {'PASSED' if results['failed'] == 0 else 'FAILED'}", 
+                      total=results["total"], passed=results["passed"], failed=results["failed"])
+        
+        return {
+            "success": results["failed"] == 0,
+            "data": results
+        }
 
     def run(self,**constants):
         framework_log("INFO", "Avvio esecuzione suite di test...", emoji="🧪")
