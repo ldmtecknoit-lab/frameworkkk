@@ -10,11 +10,17 @@ from framework.service.diagnostic import LogReportEncoder, framework_log, buffer
 
 mappa = {
     (str,dict,''): lambda v: v if isinstance(v, dict) else {},
-    (str,dict,'json'): lambda v: json.loads(v) if isinstance(v, str) else {},
-    (dict,str,'json'): lambda v: json.dumps(v,indent=4,cls=LogReportEncoder) if isinstance(v, dict) else '',
+    (dict,dict,''): lambda v: v,
+    (str,str,''): lambda v: v,
+    (str,dict,'json'): lambda v: json.loads(v) if isinstance(v, str) else v if isinstance(v, dict) else {},
+    (dict,dict,'json'): lambda v: v,
+    (dict,str,'json'): lambda v: json.dumps(v,indent=4,cls=LogReportEncoder) if isinstance(v, dict) else v if isinstance(v, str) else '',
+    (str,str,'json'): lambda v: v,
     (str,str,'hash'): lambda v: hashlib.sha256(v.encode('utf-8')).hexdigest() if isinstance(v, str) else '',
-    (str,dict,'toml'): lambda content: tomli.loads(content) if isinstance(content, str) else {},
-    (dict,str,'toml'): lambda data: tomli.dumps(data) if isinstance(data, dict) else '',
+    (str,dict,'toml'): lambda content: tomli.loads(content) if isinstance(content, str) else content if isinstance(content, dict) else {},
+    (dict,dict,'toml'): lambda v: v,
+    (dict,str,'toml'): lambda data: tomli.dumps(data) if isinstance(data, dict) else data if isinstance(data, str) else '',
+    (str,str,'toml'): lambda v: v,
 }
 
 async def convert(target, output,input=''):

@@ -1,10 +1,5 @@
 import sys
 import asyncio
-import framework.service.language as language
-
-imports = {
-    "flow": "framework/service/flow.py"
-}
 
 class messenger():
 

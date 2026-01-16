@@ -29,7 +29,7 @@ async def resource(path: str, **kwargs):
     # Gestione della Cache (Ottimizzazione)
     cache = container.module_cache()
     if path in cache and not kwargs.get('raw'):
-        return {"success": True, "data": cache[path]}
+        return cache[path]
 
     # Gestione Concorrenza (Prevenzione lock circolari)
     stack = container.loading_stack()
@@ -37,7 +37,7 @@ async def resource(path: str, **kwargs):
         while path in stack:
             await asyncio.sleep(0.01)
         if path in cache and not kwargs.get('raw'):
-            return {"success": True, "data": cache[path]}
+            return cache[path]
 
     if not kwargs.get('raw'):
         stack.add(path)
@@ -52,9 +52,10 @@ async def resource(path: str, **kwargs):
         )
         
         # Salvataggio in cache se il caricamento non è un fallimento esplicito
-        is_failure = isinstance(result, dict) and result.get('success') is False
-        if not is_failure:
-            cache[path] = result
+        if isinstance(result, dict) and result.get('success') is not False:
+             cache[path] = result
+             
+        # Ritorna sempre la transazione completa (success, data, errors, identifier)
         return result
         
     finally:
@@ -66,9 +67,13 @@ async def bootstrap():
     
     bootstrap_path = "framework/service/bootstrap.dsl"
     res = await resource(bootstrap_path)
-    if res.get('success'):
-        return await language.execute_dsl_file(res.get('data'))
-    return res
+    
+    # Se res è un dict con success=False, è un errore
+    if isinstance(res, dict) and res.get('success') is False:
+        return res
+    
+    # Altrimenti res è il contenuto del DSL (unwrapped)
+    return await language.execute_dsl_file(res)
 
 async def register(**config):
     """Registra un servizio o manager nel Dependency Injection container."""
@@ -374,12 +379,23 @@ async def step_validate_registration(ctx):
 async def step_load_service_module(ctx):
     """Carica il modulo indicato nel percorso via pipeline."""
     res = await resource(ctx['path'])
-    return {"success": res.get('success'), "module": res.get('data')}
+    
+    # Se res è un errore, propagalo
+    if isinstance(res, dict) and res.get('success') is False:
+        return res
+        
+    # Altrimenti res è il modulo (unwrapped)
+    ctx['module'] = res
+    return {"success": True, "data": res}
 
 async def step_inject_and_register(ctx):
     """Istanzia l'adapter e lo registra nel container dependency-injector."""
-    module = ctx['outputs'][-1].get('module')
+    module = ctx.get('module')
     name = ctx.get('service', ctx.get('name'))
+    
+    if not module:
+        return {"success": False, "errors": [f"Missing module for service {name}"]}
+        
     adapter = getattr(module, ctx.get('adapter', name))
     
     if not hasattr(container, name):
@@ -388,11 +404,18 @@ async def step_inject_and_register(ctx):
     deps = ctx.get('dependency_keys', [])
     if deps:
         # Registrazione come Factory con dipendenze risolte
-        p = providers.Factory(adapter, **ctx.get('payload', {}), 
-                              providers={k: getattr(container, k)() for k in deps})
+        # Risoluzione lazy delle dipendenze: inietta solo se il provider esiste già
+        resolved_providers = {}
+        for k in deps:
+            if hasattr(container, k):
+                resolved_providers[k] = getattr(container, k)()
+            else:
+                framework_log("WARNING", f"⚠️ Dipendenza '{k}' per {name} non ancora disponibile nel container. Sarà risolta a runtime.", emoji="⏳")
+        
+        p = providers.Factory(adapter, **ctx.get('payload', {}), **resolved_providers)
         setattr(container, name, p)
     else:
         # Iniezione diretta dell'istanza nella lista dei provider
         instance = adapter(config=ctx.get('payload', {}))
         getattr(container, name)().append(instance)
-    return True
+    return {"success": True}

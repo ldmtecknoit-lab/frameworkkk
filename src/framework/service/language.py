@@ -191,7 +191,7 @@ class DSLVisitor:
         return str(data) == str(pattern)
 
     async def _resolve(self, node, ctx):
-        if not isinstance(node, DSLVariable): return node
+        if type(node).__name__ != 'DSLVariable': return node
         name = str(node.name)
         if ctx and name in ctx: return await self.visit(ctx[name], ctx)
         if name in self.root_data: return await self.visit(self.root_data[name], ctx)
@@ -236,7 +236,7 @@ class DSLVisitor:
             if len(node) == 3 and isinstance(node[1], dict): 
                 return (await self.visit(node[0], ctx), node[1], await self.visit(node[2], ctx))
             return tuple([await self.visit(x, ctx) for x in node])
-        return await self._resolve(node, ctx) if isinstance(node, DSLVariable) else node
+        return await self._resolve(node, ctx) if type(node).__name__ == 'DSLVariable' else node
 
     async def _start_trigger(self, trigger_key, action, ctx):
         """Starts a background loop for a cron or event trigger."""
@@ -361,7 +361,9 @@ class DSLVisitor:
         stages = [flow.step(lambda context=None: seed)]
         for op in ops[1:]:
             async def stage(context=None, _op=op):
-                prev = context['outputs'][-1] if context and context.get('outputs') else seed
+                prev_raw = context['outputs'][-1] if context and context.get('outputs') else seed
+                # Auto-unwrapping for transactional outputs
+                prev = prev_raw.get('data') if isinstance(prev_raw, dict) and prev_raw.get('success') is True and 'data' in prev_raw else prev_raw
                 if isinstance(_op, tuple) and _op[0] == 'CALL':
                     _, name, p_nodes, k_nodes = _op
                     p_args = [prev] + [await self.visit(a, ctx) for a in p_nodes]
@@ -374,7 +376,13 @@ class DSLVisitor:
                 return await self._execute(str(_op), [prev], {})
             stage.__name__ = f"dsl_{str(op)[:20]}"
             stages.append(flow.step(stage))
-        return await flow.pipe(*stages, context=(ctx or {}).copy())
+        try:
+            return await flow.pipe(*stages, context=(ctx or {}).copy())
+        except Exception as e:
+            framework_log("ERROR", f"Exception during DSL expression evaluation: {e}", emoji="💥")
+            import traceback
+            traceback.print_exc()
+            return {"success": False, "errors": [str(e)]}
 
     async def execute_dsl_function(self, func_def, args):
         in_def, body, out_def = func_def
@@ -566,6 +574,10 @@ dsl_functions.update({
     ),
     'concat': lambda a, b: ((list(a) if isinstance(a, (list, tuple)) else [a]) + (list(b) if isinstance(b, (list, tuple)) else [b])),
     'query': lambda data, q: mistql.query(q, data=data),
+    'resource': lambda *a, **k: _dsl_load_service('resource', *a, **k),
+    'register': lambda *a, **k: _dsl_load_service('register', *a, **k),
+    'messenger': LazyService('messenger'),
+    'executor': LazyService('executor'),
     **{k: v for k, v in zip(['dict','list','str','int','float','bool'], [dict,list,str,int,float,bool])},
     'integer':int,'string':str,'boolean':bool,'number':float,'relative':int,'natural':int,'rational':float,'complex':float
 })

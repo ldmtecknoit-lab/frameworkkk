@@ -36,7 +36,7 @@ class LogBuffer:
     def __len__(self):
         return len(self._history)
 
-class Container(containers.DeclarativeContainer):
+class Container(containers.DynamicContainer):
     
     # Core components
     config = providers.Configuration()
