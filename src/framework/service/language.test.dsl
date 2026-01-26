@@ -1,73 +1,126 @@
 {
-    # 1. Variabili di base
-    int:base := 10;
-    int:moltiplicatore := 5;
-    str:prefisso := "RISULTATO:";
-    
-    # 2. Funzioni Matematiche
-    function:quadrato := (int:n), { 
-        r: n * n; 
-    }, (int:r);
-    
-    function:calcolo_complesso := (int:x, int:y), { 
-        prodotto: x * y;
-        somma: x + y;
-        differenza: x - y;
-        # Restituiamo un dizionario come risultato complesso
-        r: { "p": prodotto; "s": somma; "d": differenza; };
-    }, (dict:r);
+    # --- 1. GRAMMATICA BASE E TIPI ---
+    int:base_int := 10;
+    float:base_float := 20.5;
+    str:base_str := "Ciao";
+    str:base_str_single := 'Mondo';
+    boolean:b1 := Vero;
+    boolean:b2 := False;
+    any:qualsiasi := *;
 
-    # 3. Funzioni di Logica e Stringhe
-    function:valida_e_formatta := (int:valore, str:msg), {
-        # Test condizionale via switch/match
-        status: valore |> match({
-            "@ > 50": "ALTO";
-            "@ <= 50": "BASSO";
-        });
-        
-        r: prefisso + " " + msg + " -> " + status;
-    }, (str:r);
+    # --- 2. OPERATORI ARITMETICI (Precedenza e Parentesi) ---
+    int:math_1 := 2 + 3 * 4;       # 14
+    int:math_2 := (2 + 3) * 4;     # 20
+    int:math_3 := 10 / 2 - 1;      # 4
+    int:math_4 := 10 % 3;          # 1
+    int:math_5 := 2 ^ 3;           # 8
+    
+    # --- 3. OPERATORI LOGICI E COMPARAZIONE ---
+    boolean:logic_1 := Vero & (10 > 5) or Falso; # Vero
+    boolean:logic_2 := not (5 == 5) or (1 != 2); # Vero
+    boolean:logic_3 := (10 >= 10) & (5 <= 6) & (2 < 3) & (4 > 1); # Vero
+    
+    # --- 4. COLLEZIONI (Liste, Dizionari, Tuple) ---
+    list:lista_semplice := [1, 2, "tre", Vero];
+    dict:diz_semplice := { "chiave": "valore"; "num": 42; };
+    tuple:tupla_semplice := (1, "test"); 
+    tuple:tupla_inline := 1, 2, 3; # Test tuple_inline senza parentesi
+    list:lista_trailing := [1, 2]; 
+    dict:diz_trailing := { "a": 1; "b": 2; };
 
-    # 4. Collezioni
-    list:numeri := [1, 2, 3, 4, 5];
-    dict:mappa_base := { "a": 1; "b": 2; };
+    # --- 5. FUNZIONI (Definizione, Chiamata, Ritorno Multiplo) ---
+    function:f_base := (int:n), { 
+        res: n * 2; 
+    }, (int:res);
     
-    # 5. Operazioni di Test (Target)
+    function:f_multi_in := (int:x, int:y), { 
+        somma: x + y; 
+    }, (int:somma);
     
-    # Test Precedenza e Operatori
-    int:test_math_precedence := (10 + 2 * 5) / 2; # (10 + 10) / 2 = 10
+    function:f_multi_out := (int:val), {
+        v1: val + 1;
+        v2: val + 2;
+    }, (int:v1, int:v2);
     
-    # Test Pipe Chaining
-    int:test_pipe_chain := 2 |> quadrato |> quadrato; # 2 -> 4 -> 16
+    int:test_f1 := f_base(5);                # 10
+    int:test_f2 := f_multi_in(10, 20);       # 30
+    tuple:test_f3 := f_multi_out(100);       # (101, 102)
     
-    # Test Chiamata Funzione con Dict return
-    dict:test_func_dict := calcolo_complesso(10, 5); # { "p": 50, "s": 15, "d": 5 }
+    # Chiamata con argomenti keyword
+    int:test_kw := f_multi_in(y: 50, x: 10); # 60
+
+    # --- 6. PIPE E ESPRESSIONI AVANZATE ---
+    int:test_pipe := 10 |> f_base |> f_base; # 10 -> 20 -> 40
     
-    # Test Logica Complessa
-    boolean:test_logic_complex := (Vero | Falso) & (10 > 5) & (not (1 == 2));
+    # Pipe con parametri extra
+    int:test_pipe_extra := 10 |> f_multi_in(5); # 15
+
+    # --- 7. LIBRERIA STANDARD (flow.py) ---
+    dict:lib_merge := merge({ "a": 1; }, { "b": 2; });
+    list:lib_concat := concat([1], [2]);
+    dict:lib_pick := { "a": 1; "b": 2; "c": 3; } |> pick(["a", "c"]);
     
-    # Test Switch/Match
-    str:test_match_direct := 75 |> match({
-        "@ >= 90": "A";
-        "@ >= 70": "B";
-        "@ < 70": "C";
+    list:lib_keys := keys({ "x": 1; "y": 2; });
+    list:lib_values := values({ "x": 1; "y": 2; });
+    
+    str:lib_format := format("Hello {name}", name: "World");
+    #str:lib_convert := 123 |> convert(str);
+    
+    list:lib_map := [1, 2, 3] |> map("@ * 2"); # [2, 4, 6]
+    #list:lib_foreach := [10, 20] |> foreach((int:v), { r: v + 5; }, (int:r)); # [15, 25]
+    
+    dict:lib_project := { "nested": { "val": 99; }; } |> project({ "out": "@.nested.val"; });
+    
+    int:lib_query := { "data": [10, 20, 30]; } |> query("data[1]"); # 20
+
+    # --- 8. CONTROLLO DI FLUSSO (Switch/Match) ---
+    str:test_match := 75 |> match({
+        "@ > 90": "Ottimo";
+        "@ > 60": "Sufficiente";
+        "*": "Insufficiente";
     });
-    
-    # Test Operazioni su Collezioni (Standard Library)
-    dict:test_merge := merge({ "x": 10; }, { "y": 20; });
-    list:test_concat := concat([1, 2], [3, 4]);
-    dict:test_pick := { "nome": "Mario"; "eta": 30; } |> pick(["nome"]);
 
-    # 6. TEST SUITE
+    # --- 9. QUALIFIED NAMES E DOT NOTATION ---
+    dict:servizio := { 
+        "config": { "timeout": 30; };
+        "azione": (int:x), { r: x + 1; }, (int:r);
+    };
+    #int:test_dot_1 := servizio.config.timeout; # 30
+    #int:test_dot_2 := servizio.azione(9);      # 10
+
+    # --- 10. INCLUDE ---
+    #dict:test_include_res := include("src/framework/service/dependency.dsl");
+    #str:check_include_var := valore_incluso;
+    #int:check_include_func := raddoppia(5);
+
+    # --- 11. EDGE CASES ---
+    (p1: 100); # Mapping tra parentesi
+    
+    # --- 12. TEST SUITE COMPLETA ---
     list:test_suite := [
-        { "target": "test_math_precedence"; "expected_output": 10; "description": "Precedenza aritmetica corretta"; },
-        { "target": "test_pipe_chain"; "expected_output": 16; "description": "Chain di pipe multiple"; },
-        { "target": "test_func_dict"; "expected_output": { "p": 50; "s": 15; "d": 5; }; "description": "Ritorno di dizionario da funzione"; },
-        { "target": "test_logic_complex"; "expected_output": Vero; "description": "Logica booleana con NOT e raggruppamento"; },
-        { "target": "test_match_direct"; "expected_output": "B"; "description": "Controllo di flusso via match"; },
-        { "target": "test_merge"; "expected_output": { "x": 10; "y": 20; }; "description": "Funzione standard merge"; },
-        { "target": "test_concat"; "expected_output": [1, 2, 3, 4]; "description": "Funzione standard concat"; },
-        { "target": "test_pick"; "expected_output": { "nome": "Mario"; }; "description": "Funzione standard pick su dizionario"; },
-        { "target": "valida_e_formatta"; "input_args": [60, "Test"]; "expected_output": "RISULTATO: Test -> ALTO"; "description": "Funzione complessa con match e concatenazione stringhe"; }
+        { "target": "math_1"; "expected_output": 14; "description": "Moltiplicazione prima di addizione"; },
+        { "target": "math_2"; "expected_output": 20; "description": "Parentesi forzano addizione prima"; },
+        { "target": "math_5"; "expected_output": 8; "description": "Potenza 2^3"; },
+        { "target": "logic_1"; "expected_output": Vero; "description": "Logica AND/OR"; },
+        { "target": "logic_2"; "expected_output": Vero; "description": "Logica NOT"; },
+        { "target": "tupla_semplice"; "expected_output": (1, "test"); "description": "Tupla definita senza parentesi (semplice)"; },
+        { "target": "tupla_inline"; "expected_output": (1, 2, 3); "description": "Tupla definita senza parentesi (inline)"; },
+        { "target": "test_f1"; "expected_output": 10; "description": "Chiamata funzione base"; },
+        { "target": "test_f3"; "expected_output": (101, 102); "description": "Ritorno multiplo"; },
+        { "target": "test_kw"; "expected_output": 60; "description": "Keyword arguments"; },
+        { "target": "test_pipe"; "expected_output": 40; "description": "Chaining di pipe"; },
+        { "target": "test_pipe_extra"; "expected_output": 15; "description": "Pipe con argomenti extra"; },
+        { "target": "lib_merge"; "expected_output": { "a": 1; "b": 2; }; "description": "Standard merge"; },
+        { "target": "lib_pick"; "expected_output": { "a": 1; "c": 3; }; "description": "Standard pick"; },
+        { "target": "lib_keys"; "expected_output": ["x", "y"]; "description": "Standard keys"; },
+        { "target": "lib_format"; "expected_output": "Hello World"; "description": "Standard format"; },
+        { "target": "lib_map"; "expected_output": [2, 4, 6]; "description": "MistQL map"; },
+        { "target": "lib_query"; "expected_output": 20; "description": "MistQL query"; },
+        { "target": "test_match"; "expected_output": "Sufficiente"; "description": "Controllo flusso match"; },
+        { "target": "test_dot_1"; "expected_output": 30; "description": "Accesso attributo annidato"; },
+        { "target": "test_dot_2"; "expected_output": 10; "description": "Chiamata metodo su dizionario"; },
+        { "target": "check_include_var"; "expected_output": "PRESENTE"; "description": "Variabile da include"; },
+        { "target": "check_include_func"; "expected_output": 10; "description": "Funzione da include"; },
+        { "target": "p1"; "expected_output": 100; "description": "Mappa tra parentesi"; }
     ];
 }

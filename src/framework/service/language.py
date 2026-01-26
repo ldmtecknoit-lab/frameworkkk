@@ -273,9 +273,12 @@ class DSLVisitor:
     def _validate_type(self, value, type_name, var_name):
         """Validates that a value matches the declared type name."""
         type_map = {
-            'int': int, 'integer': int, 'str': str, 'string': str, 
-            'dict': dict, 'list': list, 'float': float, 'bool': bool, 'boolean': bool, 
-            'any': object, 'any_val': object, 'number': (int, float)
+            'int': int, 'integer': int, 'i8': int, 'i16': int, 'i32': int, 'i64': int, 'i128': int,
+            'str': str, 'string': str,
+            'dict': dict, 'list': list, 'float': float,'f8': float, 'f16': float, 'f32': float, 'f64': float, 'f128': float,
+            'tuple': tuple, 'array': list,
+            'bool': bool, 'boolean': bool, 
+            'any': object, 'number': (int, float)
         }
         
         expected_type = type_map.get(type_name)
