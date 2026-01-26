@@ -1,10 +1,6 @@
 from secrets import token_urlsafe
 from typing import Dict, Any
 
-imports = {
-    
-}
-
 class defender:
     def __init__(self, **constants):
         """

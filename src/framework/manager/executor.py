@@ -2,19 +2,17 @@ import asyncio
 from typing import List, Dict, Any, Callable
 import re
 import traceback
-from framework.service.inspector import framework_log
-
-imports = {
-    "flow": "framework/service/flow.py"
-}
+from framework.service.diagnostic import framework_log
 
 class executor:
     def __init__(self, **constants):
         # actuator
         self.sessions: Dict[str, Any] = {}
-        self.providers = constants.get('providers', [])
-        #print('EXE-',self.providers)
-        #asyncio.create_task(self.action(case="github.invite-collaborator"))
+        providers_data = constants.get('providers', [])
+        if isinstance(providers_data, dict):
+            self.providers = providers_data.get('actuator', [])
+        else:
+            self.providers = providers_data
     
     @flow.asynchronous(managers=('messenger',))
     async def action(self, messenger, **constants):

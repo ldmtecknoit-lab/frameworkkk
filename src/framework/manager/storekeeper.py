@@ -2,9 +2,6 @@ import asyncio
 import importlib
 from framework.service import language
 
-imports = {
-}
-
 class storekeeper():
 
     def __init__(self,**constants):

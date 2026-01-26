@@ -60,7 +60,7 @@ class loader:
                 print(f"[ERROR] Impossibile caricare il servizio core '{name}': {res.get('errors')}")
                 continue
 
-            service_module = res
+            service_module = res.get('data', res) if isinstance(res, dict) else res
             
             # Iniezione delle dipendenze dichiarate per questo servizio
             for dep_name in self.dependencies.get(name, []):
@@ -120,8 +120,10 @@ class loader:
         return res
 
     async def register(self, **kwargs):
-        """
-        Registra un'entrata nel container, delegando al servizio load.
-        """
-        load_service = self.services.get('load', load)
-        return await load_service.register(**kwargs)
+        """Registra un servizio o manager nel Dependency Injection container."""
+        return await flow.pipe(
+            step_load_service_module,
+            step_validate_registration,
+            step_inject_and_register,
+            context=config
+        )

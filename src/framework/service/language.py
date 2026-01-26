@@ -23,41 +23,49 @@ grammar = r"""
     ADD_OP: "+"
     SUB_OP: "-"
     COMPARISON_OP: "==" | "!=" | ">=" | "<=" | ">" | "<"
-    PIPE: "|"
+    PIPE: "|>"
     QUALIFIED_CNAME: CNAME ("." CNAME)+
     COMMENT: /#[^\n]*/
     ANY: "*"
 
     value: SIGNED_NUMBER -> number
         | (ESCAPED_STRING | SINGLE_QUOTED_STRING) -> string
-        | "Vero" -> true | "Falso" -> false
-        | (CNAME | QUALIFIED_CNAME) -> simple_key
+        | ("Vero" | "True") -> true | ("Falso" | "False") -> false
         | ANY -> any_val
     
-    not_expr: atom | "not" not_expr -> not_op
-    power_expr: not_expr | power_expr POW_OP not_expr -> power
-    mult_expr: power_expr | mult_expr (MUL_OP | DIV_OP | MOD_OP) power_expr -> binary_op
-    add_expr: mult_expr | add_expr (ADD_OP | SUB_OP) mult_expr -> binary_op
-    comparison_expr: add_expr | comparison_expr COMPARISON_OP add_expr -> binary_op
-    and_expr: comparison_expr | and_expr "and" comparison_expr -> and_op
-    or_expr: and_expr | or_expr "or" and_expr -> or_op
+    ?not_expr: atom | "not" not_expr -> not_op
+    ?power_expr: atom | power_expr POW_OP atom -> power
+    ?mult_expr: power_expr | mult_expr (MUL_OP | DIV_OP | MOD_OP) power_expr -> binary_op
+    ?add_expr: mult_expr | add_expr (ADD_OP | SUB_OP) mult_expr -> binary_op
+    
+    # Pipe level (lower than arithmetic, higher than comparison)
+    ?pipe_expr: add_expr (PIPE (add_expr | tuple_inline))* -> pipe_node
+    
+    ?comparison_expr: pipe_expr | comparison_expr COMPARISON_OP pipe_expr -> binary_op
+    ?and_expr: comparison_expr | and_expr ("and" | "&") comparison_expr -> and_op
+    ?or_expr: and_expr | or_expr ("or" | "|") and_expr -> or_op
+    
+    ?expression: or_expr
     
     dictionary: braced_dict
     item: pair | function_call -> statement
     
-    # Typed name like integer:x
-    typed_name: CNAME ":" CNAME -> typed_name_node
+    # Enforce typed name like integer:x for declarations
+    typed_name: CNAME ":" (CNAME | QUALIFIED_CNAME) -> typed_name_node
     
-    pair_statement.10: (value | tuple_inline | typed_name | function_call) ":" (expression | tuple_inline | typed_name)
-    pair: "(" pair_statement ")" | pair_statement
-    valid_tuple_item: value | dictionary | tuple | "(" or_expr ")" | typed_name
-    tuple: "(" [ (expression | typed_name) ("," (expression | typed_name))*] ")" -> tuple_
-    function_call: (CNAME | QUALIFIED_CNAME) "(" [call_args] ")"
+    declaration: typed_name ":=" (expression | tuple_inline)
+    mapping: (value | tuple_inline | typed_name | function_call | CNAME | QUALIFIED_CNAME) ":" (expression | tuple_inline)
+    
+    pair: "(" (declaration | mapping) ")" | (declaration | mapping)
+    
+    valid_tuple_item: value | dictionary | tuple | list | "(" expression ")" | typed_name | CNAME | QUALIFIED_CNAME
+    tuple: "(" [ (expression | typed_name | CNAME | QUALIFIED_CNAME) ("," (expression | typed_name | CNAME | QUALIFIED_CNAME))*] ")" -> tuple_
+    list: "[" [ (expression | typed_name | CNAME | QUALIFIED_CNAME) ("," (expression | typed_name | CNAME | QUALIFIED_CNAME))*] "]" -> list_
+    function_call: (CNAME | QUALIFIED_CNAME | typed_name) "(" [call_args] ")"
     call_args: call_arg ("," call_arg)*
     call_arg: expression -> arg_pos | CNAME ":" expression -> arg_kw
-    atom: value | dictionary | function_call | "(" pair_statement ")" -> pair | tuple | "(" or_expr ")" | typed_name
+    atom: value | dictionary | function_call | "(" (declaration | mapping) ")" -> pair | tuple | list | "(" expression ")" | typed_name | CNAME | QUALIFIED_CNAME -> simple_key
     tuple_inline: [valid_tuple_item ("," valid_tuple_item)* ","?] -> tuple_
-    expression: or_expr (PIPE (or_expr | tuple_inline))* -> expression
 
     %import common.SIGNED_NUMBER
     %import common.ESCAPED_STRING
@@ -78,13 +86,28 @@ class ConfigTransformer(Transformer):
     def call_args(self, args): return args
     def arg_pos(self, args): return ('POS', args[0])
     def arg_kw(self, args): return ('KW', str(args[0]), args[1])
+    def pipe_node(self, items):
+        p = [i for i in items if not (isinstance(i, Token) and i.type == 'PIPE')]
+        return p[0] if len(p) == 1 else ('EXPRESSION', p)
+    def declaration(self, args): return args[0], args[1]
+    def mapping(self, args): return args[0], args[1]
     def function_call(self, args):
-        name, call_args = args[0], (args[1] if len(args)>1 else [])
-        return ('CALL', str(name), tuple(a[1] for a in call_args if a[0]=='POS'), {a[1]: a[2] for a in call_args if a[0]=='KW'})
-    def pair_statement(self, args):
-        k, v = args
-        return k, v
+        name_node, call_args = args[0], (args[1] if len(args)>1 else [])
+        if isinstance(name_node, tuple) and name_node[0] == 'TYPED':
+            name = str(name_node[2])
+        else:
+            name = str(name_node)
+        return ('CALL', name, tuple(a[1] for a in call_args if a[0]=='POS'), {a[1]: a[2] for a in call_args if a[0]=='KW'})
+    def pair(self, args):
+        return args[0]
     def statement(self, args):
+        return args[0]
+    def atom(self, args):
+        # Strip parentheses if present (children would be [Token('('), item, Token(')')])
+        # Or just return the first non-token item
+        for a in args:
+            if not isinstance(a, Token) or a.type not in ('LPAR', 'RPAR', 'LSQB', 'RSQB', 'LBRACE', 'RBRACE', 'COLON', 'COMMA', 'SEMICOLON'):
+                return a
         return args[0]
     def dictionary(self, items):
         # Prevent recursive parsing of already transformed dictionaries
@@ -100,15 +123,27 @@ class ConfigTransformer(Transformer):
                 is_event_trigger = isinstance(k, tuple) and len(k) > 0 and k[0] == 'CALL'
                 is_cron_trigger = isinstance(k, tuple) and any(x == '*' for x in k if isinstance(x, str))
                 
+                def extract_typed(x):
+                    if isinstance(x, tuple):
+                        if len(x) >= 3 and x[0] == 'TYPED': return x
+                        if len(x) == 1: return extract_typed(x[0])
+                    return None
+
+                t_node = extract_typed(k)
+                
+                # Normalize key to string if it's a Token or simple wrapper
+                def normalize_key(x):
+                    if hasattr(x, 'type'): return str(x)
+                    if isinstance(x, DSLVariable): return str(x.name)
+                    if isinstance(x, (list, tuple)) and len(x) == 1: return normalize_key(x[0])
+                    return str(x)
+
                 if is_event_trigger or is_cron_trigger:
                     triggers.append((k, v))
-                elif isinstance(k, str):
-                    res[k] = v
-                elif isinstance(k, DSLVariable):
-                    res[str(k.name)] = v
+                elif t_node:
+                    res[t_node] = v
                 else:
-                    # Fallback or complex key
-                    res[str(k)] = v
+                    res[normalize_key(k)] = v
             elif isinstance(i, tuple) and i[0] == 'CALL':
                 # Use a random key or the function name as key for statements
                 res[f"__stmt_{i[1]}"] = i
@@ -123,24 +158,30 @@ class ConfigTransformer(Transformer):
             res['__triggers__'] = triggers
         return res
     def binary_op(self, args):
-        l, o, r = args
+        l, o, r = args[0], args[1], args[2]
         m = {'+':'ADD','-':'SUB','*':'MUL','/':'DIV','%':'MOD','==':'EQ','!=':'NEQ','>=':'GTE','<=':'LTE','>':'GT','<':'LT'}
         return (f'OP_{m[str(o)]}', l, r)
     def power(self, args): return ('OP_POW', args[0], args[2])
-    def and_op(self, args): return ('OP_AND', args[0], args[1])
-    def or_op(self, args): return ('OP_OR', args[0], args[1])
-    def not_op(self, args): return ('OP_NOT', args[0])
-    def expression(self, items):
+    def and_op(self, args): return ('OP_AND', args[0], args[2] if len(args) > 2 else args[1])
+    def or_op(self, args): return ('OP_OR', args[0], args[2] if len(args) > 2 else args[1])
+    def not_op(self, args): return ('OP_NOT', args[1] if len(args) > 1 else args[0])
+    def pipe_node(self, items):
         p = [i for i in items if not (isinstance(i, Token) and i.type == 'PIPE')]
         return p[0] if len(p) == 1 else ('EXPRESSION', p)
     def tuple_(self, items):
         items = [i for i in items if i is not None]
+        if len(items) == 1: return items[0]
         return tuple(items)
+    def list_(self, items):
+        items = [i for i in items if i is not None]
+        return list(items)
     def number(self, n): return float(str(n[0])) if '.' in str(n[0]) else int(str(n[0]))
     def string(self, s): return str(s[0]).strip('"\'')
     def true(self, _): return True
     def false(self, _): return False
-    def simple_key(self, s): return DSLVariable(str(s[0]))
+    def simple_key(self, s): 
+        # For qualified names or simple keys, we treat them as variables
+        return DSLVariable(str(s))
     def any_val(self, _): return '*'
     def typed_name_node(self, args): return ('TYPED', str(args[0]), str(args[1]))
     def pair(self, args): return args[0]
@@ -159,10 +200,18 @@ class DSLVisitor:
             'OP_AND': lambda a, b: a and b, 'OP_OR': lambda a, b: a or b, 'OP_NOT': lambda a: not a
         }
         self.root_path = "."
+        self._background_tasks = []
 
     async def run(self, data):
         self.root_data = data
         res = await self.visit(data)
+        
+        # Se abbiamo dei task in background (cron, event), attendiamo che finiscano
+        # Questo mantiene vivo il processo se ci sono listener attivi.
+        if self._background_tasks:
+            framework_log("INFO", f"⏳ In attesa di {len(self._background_tasks)} task in background...", emoji="💤")
+            await asyncio.gather(*self._background_tasks)
+            
         return res
 
     @staticmethod
@@ -191,38 +240,81 @@ class DSLVisitor:
         return str(data) == str(pattern)
 
     async def _resolve(self, node, ctx):
-        if type(node).__name__ != 'DSLVariable': return node
-        name = str(node.name)
+        # Treat Token and DSLVariable similarly
+        if not hasattr(node, 'type') and type(node).__name__ != 'DSLVariable' and not isinstance(node, str):
+            return node
+            
+        name = str(node.name if hasattr(node, 'name') else node)
+        
+        # If it's a string, ensure it's not a literal or keyword we should ignore
+        # (Though strings are usually handled as literal values earlier)
+        
         if ctx and name in ctx: return await self.visit(ctx[name], ctx)
-        if name in self.root_data: return await self.visit(self.root_data[name], ctx)
         
         # Priority to functions map
         if name in self.functions_map:
             return self.functions_map[name]
             
+        # Check in root_data (handling typed names)
+        if name in self.root_data: 
+            return await self.visit(self.root_data[name], ctx)
+        
+        for k in self.root_data:
+            if isinstance(k, tuple) and len(k) == 3 and k[0] == 'TYPED' and k[2] == name:
+                return await self.visit(self.root_data[k], ctx)
+
         # Fallback to standard types if not shadowed
-        type_map = {'dict': dict, 'list': list, 'str': str, 'int': int, 'float': float, 'bool': bool}
+        type_map = {'dict': dict, 'list': list, 'str': str, 'int': int, 'float': float, 'bool': bool, 'any': object}
         if name in type_map:
             return type_map[name]
         
         return name
 
+    def _validate_type(self, value, type_name, var_name):
+        """Validates that a value matches the declared type name."""
+        type_map = {
+            'int': int, 'integer': int, 'str': str, 'string': str, 
+            'dict': dict, 'list': list, 'float': float, 'bool': bool, 'boolean': bool, 
+            'any': object, 'any_val': object
+        }
+        
+        expected_type = type_map.get(type_name)
+        if expected_type is None:
+            # If type not in map, just skip validation for now or warn
+            return
+            
+        if expected_type is object:
+            return
+            
+        if not isinstance(value, expected_type):
+            raise TypeError(f"Errore di tipo: la variabile '{var_name}' è dichiarata come {type_name}, ma ha valore {type(value).__name__} ('{value}')")
+
     async def visit(self, node, ctx=None):
         if isinstance(node, dict):
-            # Create a copy of items to avoid "dictionary changed size during iteration"
-            items = list(node.items())
+            # Use a working context to allow references to previous definitions in the same block
+            working_ctx = (ctx or {}).copy()
             res = {}
             
-            # 1. Resolve all non-triggers first (sequential)
-            # This ensures variables like registered_managers are evaluated before triggers start
-            for k, v in items:
-                if k != '__triggers__':
-                    res[k] = await self.visit(v, ctx)
+            # Extract triggers first but evaluate them later
+            triggers = node.pop('__triggers__', [])
+            
+            # 1. Resolve all items sequentially, updating the working context
+            for k, v in node.items():
+                val = await self.visit(v, working_ctx)
+                if isinstance(k, tuple) and len(k) == 3 and k[0] == 'TYPED':
+                    _, type_name, name = k
+                    self._validate_type(val, type_name, name)
+                    res[name] = val
+                    working_ctx[name] = val
+                else:
+                    name_str = str(k)
+                    res[name_str] = val
+                    working_ctx[name_str] = val
             
             # 2. Start triggers (concurrent)
-            if '__triggers__' in node:
-                for trigger_key, action in node['__triggers__']:
-                    asyncio.create_task(self._start_trigger(trigger_key, action, ctx))
+            for trigger_key, action in triggers:
+                task = asyncio.create_task(self._start_trigger(trigger_key, action, working_ctx))
+                self._background_tasks.append(task)
             
             return res
         if isinstance(node, list): return [await self.visit(x, ctx) for x in node]
@@ -232,11 +324,25 @@ class DSLVisitor:
                 return self.ops[tag](*[await self.visit(a, ctx) for a in node[1:]])
             if tag == 'EXPRESSION': return await self.evaluate_expression(node[1], ctx)
             if tag == 'CALL': return await self.execute_call(node, ctx)
-            if tag == 'TYPED': return node # Keep typed node for execute_dsl_function
+            if tag == 'TYPED':
+                # Resolving a typed name reference
+                _, type_name, name = node
+                val = await self._resolve(name, ctx)
+                # Validation could be added here if needed
+                return val
+            
+            # Detect function definition: (args), {body}, (returns)
+            # We must NOT visit the body (dict) now, and we shouldn't resolve the signature yet
             if len(node) == 3 and isinstance(node[1], dict): 
-                return (await self.visit(node[0], ctx), node[1], await self.visit(node[2], ctx))
+                return node
+                
             return tuple([await self.visit(x, ctx) for x in node])
-        return await self._resolve(node, ctx) if type(node).__name__ == 'DSLVariable' else node
+        
+        # If it's a Token or string identifier, treat it as a variable name to resolve
+        if hasattr(node, 'type') or type(node).__name__ == 'DSLVariable': 
+            return await self._resolve(node, ctx)
+            
+        return node
 
     async def _start_trigger(self, trigger_key, action, ctx):
         """Starts a background loop for a cron or event trigger."""
@@ -357,22 +463,49 @@ class DSLVisitor:
 
     async def evaluate_expression(self, ops, ctx):
         if not ops: return None
+        print(f"DEBUG: evaluate_expression for {ops[0]}...")
         seed = await self.visit(ops[0], ctx)
         stages = [flow.step(lambda context=None: seed)]
         for op in ops[1:]:
             async def stage(context=None, _op=op):
+                print(f"DEBUG: Pipe stage executing for {_op}...")
                 prev_raw = context['outputs'][-1] if context and context.get('outputs') else seed
                 # Auto-unwrapping for transactional outputs
                 prev = prev_raw.get('data') if isinstance(prev_raw, dict) and prev_raw.get('success') is True and 'data' in prev_raw else prev_raw
+                
+                name = None
+                p_nodes = []
+                k_nodes = {}
+                
                 if isinstance(_op, tuple) and _op[0] == 'CALL':
                     _, name, p_nodes, k_nodes = _op
+                elif isinstance(_op, tuple) and _op[0] == 'TYPED':
+                    name = str(_op[2])
+                elif isinstance(_op, DSLVariable):
+                    name = str(_op.name)
+                elif isinstance(_op, str):
+                    name = _op
+                elif isinstance(_op, (list, tuple)) and len(_op) == 3:
+                    # Anonymous function def in pipe
+                    return await self.execute_dsl_function(_op, [prev], {})
+                
+                if name and isinstance(name, str):
                     p_args = [prev] + [await self.visit(a, ctx) for a in p_nodes]
                     k_args = {k: await self.visit(v, ctx) for k, v in k_nodes.items()}
-                    return await self._execute(name, p_args, k_args)
-                if isinstance(_op, (list, tuple)) and len(_op) == 3:
-                    in_def, name, _ = _op
-                    p_args = [prev] + [await self.visit(a, ctx) for a in (in_def if isinstance(in_def, (list, tuple)) else ([in_def] if in_def else []))]
-                    return await self._execute(str(name), p_args, {})
+                    
+                    # Resolve function definition from context or root
+                    func_def = (ctx or {}).get(name) or self.root_data.get(name)
+                    framework_log("TRACE", f"Pipe Stage: {name} (DSL Function: {func_def is not None})")
+                    
+                    if isinstance(func_def, (list, tuple)) and len(func_def) == 3:
+                        res = await self.execute_dsl_function(func_def, p_args, k_args)
+                        framework_log("TRACE", f"DSL Function {name} result: {res}")
+                        return res
+                        
+                    res = await self._execute(name, p_args, k_args)
+                    framework_log("TRACE", f"Executed {name} result: {res}")
+                    return res
+                
                 return await self._execute(str(_op), [prev], {})
             stage.__name__ = f"dsl_{str(op)[:20]}"
             stages.append(flow.step(stage))
@@ -384,26 +517,46 @@ class DSLVisitor:
             traceback.print_exc()
             return {"success": False, "errors": [str(e)]}
 
-    async def execute_dsl_function(self, func_def, args):
+    async def execute_dsl_function(self, func_def, p_args, k_args=None):
         in_def, body, out_def = func_def
         ctx = {}
+        k_args = k_args or {}
+        
         def get_p(p):
             if isinstance(p, tuple) and p[0] == 'TYPED': return (p[2], p[1])
             return (p.name if isinstance(p, DSLVariable) else str(p), None)
+            
         def is_multi(d):
             if not isinstance(d, (list, tuple)) or not d: return False
-            if len(d) == 3 and d[0] == 'TYPED': return False # Single typed param
+            if len(d) == 3 and d[0] == 'TYPED': return False
             return True
+
         params = [get_p(p) for p in in_def] if is_multi(in_def) else [get_p(in_def)]
-        arg_list = args if isinstance(args, (list, tuple)) and len(params) > 1 else [args]
-        for (name, type_name), val in zip(params, arg_list):
+        
+        # 1. Map positional arguments
+        for i, (name, type_name) in enumerate(params):
+            val = None
+            if i < len(p_args):
+                val = p_args[i]
+            elif name in k_args:
+                val = k_args.pop(name)
+            
             if type_name:
                 t_map = {'int':int,'integer':int,'str':str,'string':str,'float':float,'number':(int,float),'bool':bool,'boolean':bool,'dict':dict,'list':list,'tuple':tuple}
                 exp = t_map.get(type_name) or self.functions_map.get(type_name)
-                if exp and not isinstance(val, exp): raise TypeError(f"Param {name} expected {type_name}, got {type(val)}")
+                if exp and not isinstance(val, exp): 
+                    raise TypeError(f"Parametro {name} atteso {type_name}, ricevuto {type(val).__name__}")
             ctx[name] = val
-        for k, v in body.items(): ctx[str(k)] = await self.visit(v, ctx)
+            
+        # 2. Execute body using the visitor's dictionary logic
+        body_res = await self.visit(body, ctx)
+        ctx.update(body_res)
+        # print(f"DEBUG: Body execution results: {body_res}")
+        # print(f"DEBUG: Context after body update keys: {list(ctx.keys())}")
+            
+        # 3. Return outputs
         outs = [get_p(p)[0] for p in out_def] if is_multi(out_def) else [get_p(out_def)[0]]
+        # print(f"DEBUG: Looking for outputs: {outs}")
         res = [ctx.get(o) for o in outs]
         return res[0] if len(res) == 1 else tuple(res)
 

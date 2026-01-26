@@ -317,49 +317,7 @@ async def safe(func: Callable, *args, **kwargs) -> Dict[str, Any]:
             "errors": [{"type": type(e).__name__, "message": str(e)}]
         }
 
-def transactional(func):
-    """
-    Assicura che il risultato di una funzione sia sempre conforme a transaction.json.
-    """
-    if not callable(func) or getattr(func, '_is_transactional', False):
-        return func
-
-    if asyncio.iscoroutinefunction(func):
-        @functools.wraps(func)
-        async def wrapper(*args, **kwargs):
-            try:
-                result = await func(*args, **kwargs)
-                if isinstance(result, dict) and 'success' in result and ('data' in result or 'errors' in result):
-                    return result
-                return {"success": True, "data": result, "errors": []}
-            except Exception as e:
-                return {"success": False, "data": None, "errors": [str(e)]}
-        wrapper._is_transactional = True
-        return wrapper
-    else:
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                result = func(*args, **kwargs)
-                if inspect.isawaitable(result):
-                    async def await_result():
-                        try:
-                            res = await result
-                            if isinstance(res, dict) and 'success' in res and ('data' in res or 'errors' in res):
-                                return res
-                            return {"success": True, "data": res, "errors": []}
-                        except Exception as e:
-                            return {"success": False, "data": None, "errors": [str(e)]}
-                    return await_result()
-                
-                if isinstance(result, dict) and 'success' in result and ('data' in result or 'errors' in result):
-                    return result
-                return {"success": True, "data": result, "errors": []}
-            except Exception as e:
-                return {"success": False, "data": None, "errors": [str(e)]}
-        
-        wrapper._is_transactional = True
-        return wrapper
+# action is used as asynchronous/synchronous alias above
 
 async def branch(on_success: Callable, on_failure: Callable, context=dict()):
     """
