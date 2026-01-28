@@ -208,7 +208,8 @@ async def _normalize_wrapper(transaction, output_schema_path, wrapper_func, kwar
                 "identifier": current_tx_id,
                 "worker": transaction.get('worker', 'unknown')
             }
-            return await normalize(meta | transaction, target_schema)
+            #return await normalize(meta | transaction, target_schema)
+            return meta | transaction
         except Exception as e:
             buffered_log("ERROR", f"Errore normalizzazione output in {wrapper_func.__name__}: {e}")
             return transaction

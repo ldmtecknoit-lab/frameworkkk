@@ -8,12 +8,12 @@
     str:const_str := "Ciao";
     str:const_str_alt := 'Mondo';
 
-    boolean:bool_true := Vero;
-    boolean:bool_false := Falso;
+    boolean:bool_true := True;
+    boolean:bool_false := False;
 
     any:any_str := "Ciao";
     any:any_int := 10;
-    any:any_bool := Vero;
+    any:any_bool := True;
     any:any_list := [1, 2, 3];
     any:any_dict := { "a": 1; "b": 2; };
     any:any_tuple := (1, 2, 3);
@@ -36,7 +36,7 @@
     # ============================================================
 
     boolean:logic_and_or :=
-        Vero & (10 > 5) or Falso;
+        True & (10 > 5) or False;
 
     boolean:logic_not :=
         not (5 == 5) or (1 != 2);
@@ -167,11 +167,11 @@
     list:test_suite := [
         { "target": "const_int"; "output": 10; "description": "Costante int"; },
         { "target": "const_str"; "output": "Ciao"; "description": "Costante str"; },
-        { "target": "bool_true"; "output": Vero; "description": "Costante bool"; },
+        { "target": "bool_true"; "output": True; "description": "Costante bool"; },
         
         { "target": "any_int"; "output": 10; "description": "Any int"; },
         { "target": "any_str"; "output": "Ciao"; "description": "Any str"; },
-        { "target": "any_bool"; "output": Vero; "description": "Any bool"; },
+        { "target": "any_bool"; "output": True; "description": "Any bool"; },
         { "target": "any_list"; "output": [1, 2, 3]; "description": "Any list"; },
         { "target": "any_dict"; "output": { "a": 1; "b": 2; }; "description": "Any dict"; },
         { "target": "any_tuple"; "output": (1, 2, 3); "description": "Any tuple"; },
@@ -180,8 +180,8 @@
         { "target": "calc_grouped"; "output": 20; "description": "Parentesi esplicite"; },
         { "target": "calc_power"; "output": 8; "description": "Operatore potenza"; },
 
-        { "target": "logic_and_or"; "output": Vero; "description": "Logica AND/OR"; },
-        { "target": "logic_not"; "output": Vero; "description": "Operatore NOT"; },
+        { "target": "logic_and_or"; "output": True; "description": "Logica AND/OR"; },
+        { "target": "logic_not"; "output": True; "description": "Operatore NOT"; },
 
         { "target": "collection_pair"; "output": (1, "test"); "description": "Tuple standard"; },
         { "target": "collection_inline_tuple"; "output": (1, 2, 3); "description": "Tuple inline"; },

@@ -30,7 +30,7 @@ grammar = r"""
 
     value: SIGNED_NUMBER -> number
         | (ESCAPED_STRING | SINGLE_QUOTED_STRING) -> string
-        | ("Vero" | "True") -> true | ("Falso" | "False") -> false
+        | ("true"i | "True"i) -> true | ("false"i | "False"i) -> false
         | ANY -> any_val
     
     ?power_expr: atom | power_expr POW_OP atom -> power
@@ -801,6 +801,8 @@ async def _dsl_switch(cases_or_value, value_or_context=None, context=None):
     return await flow.switch(wrapped_cases, ctx)
 
 dsl_functions.update({
+    'transform': flow.transform,
+    'normalize': flow.normalize,
     'put': flow.put,
     'format': flow.format, 'foreach': flow.foreach, 'convert': flow.convert, 'get': flow.get,
     'keys': lambda d: list(d.keys()) if isinstance(d, dict) else [],
@@ -815,20 +817,6 @@ dsl_functions.update({
     'catch': flow.catch, 'branch': flow.branch, 'retry': flow.retry,
     'fallback': flow.fallback,
     'project': lambda d, m=None: (
-        (lambda data, template: (
-            (lambda res_func: (
-                [res_func(res_func, i, template) for i in data] if isinstance(data, list) else res_func(res_func, data, template)
-            ))(
-                lambda self, i, m: (
-                    {k: self(self, i, v) for k, v in m.items()} if isinstance(m, dict) else
-                    [self(self, i, x) for x in m] if isinstance(m, list) else
-                    (flow.get(i, m[2:]) if isinstance(m, str) and m.startswith("@.") else 
-                     (re.sub(r'\{([^{}]+)\}', lambda match: str(flow.get(i, match.group(1), match.group(0))), m) if isinstance(m, str) and "{" in m and "}" in m else m))
-                )
-            )
-        ))(d, m) if m is not None else d
-    ),
-    'transform': lambda d, m=None: (
         (lambda data, template: (
             (lambda res_func: (
                 [res_func(res_func, i, template) for i in data] if isinstance(data, list) else res_func(res_func, data, template)

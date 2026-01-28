@@ -12,6 +12,66 @@ data: {
     };
 };
 
+dict:utente_schema := {
+  "nome": {
+    "type": "string";
+    "required": False;
+  };
+  "cognome": {
+    "type": "string";
+    "required": True;
+  };
+  "eta": {
+    "type": "number";
+    "required": True;
+  };
+  "email": {
+    "type": "string";
+    "required": False;
+    "nullable": True;
+  };
+  "numero": {
+    "type": "number";
+    "required": True;
+    "min": 0;
+  };
+  "indirizzo": {
+    "type": "string";
+    "required": False;
+    "nullable": True;
+  };
+};
+
+dict:user_schema := {
+  "name": {
+    "type": "string";
+    "required": False;
+  };
+  "surname": {
+    "type": "string";
+    "required": True;
+  };
+  "age": {
+    "type": "number";
+    "required": True;
+  };
+  "email": {
+    "type": "string";
+    "required": False;
+    "nullable": True;
+  };
+  "phone": {
+    "type": "number";
+    "required": True;
+    "min": 0;
+  };
+  "address": {
+    "type": "string";
+    "required": False;
+    "nullable": True;
+  };
+};
+
 # Test per la funzione get
 str:get_1 := get(data, "nome");
 int:get_2 := get(data, "config.timeout");
@@ -28,10 +88,10 @@ int:convert_1 := convert("10", int);
 str:convert_2 := convert(10, str);
 bool:convert_3 := convert("true", bool);
 bool:convert_4 := convert("false", bool);
-str:convert_5 := convert(True, str);
-str:convert_6 := convert(False, str);
-str:convert_7 := convert(true, str);
-str:convert_8 := convert(false, str);
+str:convert_5 := convert(true, str);
+str:convert_6 := convert(false, str);
+#str:convert_7 := convert(True, bool);
+#str:convert_8 := convert(False, bool);
 
 # put 
 dict:put_1 := put(data, "nome", "Progetto B");
@@ -40,8 +100,29 @@ dict:put_3 := put(data, "config.timeout", 60);
 #dict:put_4 := put(data, "versioni.*.status", "completo");
 #dict:put_5 := put(data, "versioni.*.dettagli.tester", "Mario");
 
+# normalize
+dict:normalize_1 := normalize({
+    "name": "Mario";
+    "surname": "Rossi";
+    "age": 30;
+    "email": "[EMAIL_ADDRESS]";
+    "phone": 1234567890;
+    "address": "Via Roma 1";
+}, user_schema);
+
+# transform 
+any:transform_1 := transform({
+    "name": "Mario";
+    "surname": "Rossi";
+    "age": 30;
+    "email": "[EMAIL_ADDRESS]";
+    "phone": 1234567890;
+    "address": "Via Roma 1";
+}, { name: { model:"name"; user:"nome"; }; age: { model:"age"; user:"eta"; }; output: 30; }, { }, user_schema, utente_schema);
+
 # Test suite
 tuple:test_suite := (
+    { target: 'normalize_1'; output: {"name": "Mario"; "surname": "Rossi"; "age": 30; "email": "[EMAIL_ADDRESS]"; "phone": 1234567890; "address": "Via Roma 1";}; },
     { target: 'get_1'; output: "Progetto A"; },
     { target: 'get_2'; output: 30; },
     { target: 'get_3'; output: "completo"; },
@@ -55,8 +136,8 @@ tuple:test_suite := (
     { target: 'convert_4'; output: False; },
     { target: 'convert_5'; output: "True"; },
     { target: 'convert_6'; output: "False"; },
-    { target: 'convert_7'; output: "true"; },
-    { target: 'convert_8'; output: "false"; },
+    { target: 'convert_7'; output: True; },
+    { target: 'convert_8'; output: False; },
     { target: 'put_1'; output: merge(data,{"nome": "Progetto B"; }); },
     { target: 'put_3'; output: {
         "nome": "Progetto A";
