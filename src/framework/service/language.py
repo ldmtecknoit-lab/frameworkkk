@@ -486,15 +486,33 @@ class DSLVisitor:
         if '.' in name:
             parts = name.split('.')
             obj = self.functions_map.get(parts[0])
+            
+            if obj is None:
+                # Try context or root data
+                obj = (ctx or {}).get(parts[0]) or self.root_data.get(parts[0])
+                if obj is None:
+                    # Try typed name in root
+                    for k in self.root_data:
+                        if isinstance(k, tuple) and len(k) == 3 and k[0] == 'TYPED' and k[2] == parts[0]:
+                            obj = self.root_data[k]
+                            break
+
             if obj:
                 # Navigate through the parts to get the final method
                 for part in parts[1:]:
-                    if hasattr(obj, part):
-                        obj = getattr(obj, part)
+                    if isinstance(obj, dict):
+                        obj = obj.get(part)
                     else:
+                        obj = getattr(obj, part, None)
+                    
+                    if obj is None:
                         framework_log("ERROR", f"Attribute {part} not found on {parts[0]}", emoji="🤷")
                         return None
+                        
                 # Now obj is the method we want to call
+                if isinstance(obj, tuple) and len(obj) == 3 and isinstance(obj[1], dict):
+                     return await self.execute_dsl_function(obj, p_args, k_args)
+
                 if callable(obj):
                     res = obj(*p_args, **k_args)
                     return await res if asyncio.iscoroutine(res) else res
@@ -521,6 +539,10 @@ class DSLVisitor:
                     
         if isinstance(dsl_func, tuple) and len(dsl_func) == 3:
             return await self.execute_dsl_function(dsl_func, p_args, k_args)
+        
+        if callable(dsl_func):
+            res = dsl_func(*p_args, **k_args)
+            return await res if asyncio.iscoroutine(res) else res
             
         framework_log("ERROR", f"Function {name} not found", emoji="🤷")
         return None
