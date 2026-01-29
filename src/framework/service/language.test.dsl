@@ -156,8 +156,9 @@
 
     str:file_content := resource("framework/scheme/user.dsl") |> print;
 
-    function:tt := imported.parse_dsl_file;
-    dict:tt2 := tt(file_content);
+    function:parse_dsl_file := imported.parse_dsl_file;
+    dict:call_dot_notation_direct := imported.parse_dsl_file("int:numero:=10000;");
+    dict:call_dot_notation_indirect := parse_dsl_file("int:numero:=10000;");
     any:Container := imported.container |> print;
     any:sus := imported.sus |> print;
 
@@ -210,6 +211,10 @@
 
         { "target": "res_service_timeout"; "output": 30; "description": "Dot access"; },
         { "target": "res_service_action"; "output": 10; "description": "Metodo su dict"; },
+        { "target": "call_dot_notation_direct"; "output": { "numero": 10000; }; "description": "Dot notation direct"; },
+        { "target": "call_dot_notation_indirect"; "output": { "numero": 10000; }; "description": "Dot notation indirect"; },
+        { "target": "Container"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
+        { "target": "sus"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
 
         { "target": "mapped_value"; "output": 100; "description": "Mapping tra parentesi"; }
     ];
