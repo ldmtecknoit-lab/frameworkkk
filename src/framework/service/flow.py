@@ -341,8 +341,6 @@ async def safe(func: Callable, *args, **kwargs) -> Dict[str, Any]:
             "errors": [{"type": type(e).__name__, "message": str(e)}]
         }
 
-# action is used as asynchronous/synchronous alias above
-
 async def branch(on_success: Callable, on_failure: Callable, context=dict()):
     """
     Instrada il flusso basandosi sul campo 'ok' del risultato (result.json).
@@ -472,14 +470,14 @@ async def work(workflow, context=dict()):
             _transaction_id.reset(tx_token)
 
 async def catch(try_step, catch_step,context=dict()):
+    print(f"CATCH {try_step} - {catch_step} - {context}")
     try:
         outcome = await _execute_step_internal(try_step,context)
     except Exception as e:
         outcome = {'success': False, 'errors': [str(e)]}
-    framework_log("WARNING", f"Eccezione catturata da catch: {outcome}", emoji="🪝")
     if isinstance(outcome, dict) and outcome.get('success') is False:
         framework_log("WARNING", f"Fallimento nello step. Esecuzione del fallback: {outcome.get('errors')}", emoji="⚠️")
-        return await _execute_step_internal(catch_step)
+        return await _execute_step_internal(catch_step,context)
     return outcome
 
 async def foreach(input_data, step_to_run, context=dict()) -> List[Any]:
@@ -503,7 +501,7 @@ async def foreach(input_data, step_to_run, context=dict()) -> List[Any]:
             action = (step_to_run, (item,), {})
         elif isinstance(step_to_run, (tuple, list)) and len(step_to_run) >= 1:
             # step_to_run is already an action (func, args, kwargs)
-            # we prepend the item to the positional args
+            #   we prepend the item to the positional args
             fun = step_to_run[0]
             orig_args = step_to_run[1] if len(step_to_run) > 1 else ()
             orig_kwargs = step_to_run[2] if len(step_to_run) > 2 else {}
@@ -642,6 +640,47 @@ async def throttle(action_step, rate_limit_ms = 1000, context=dict()) -> Any:
         
     _throttle_state[action_id] = time.time()
     return await _execute_step_internal(action_step)
+
+def _wrap_as_step(func):
+    """Wraps a callable as a flow.step if it's not already a tuple."""
+    if callable(func) and not isinstance(func, tuple):
+        return flow.step(func)
+    return func
+
+async def _dsl_switch(cases_or_value, value_or_context=None, context=None):
+    """Switch that auto-wraps callables as steps.
+    
+    Can be called as:
+    - match(cases_dict, context) - standard call
+    - value | match(cases_dict) - piped call where value becomes first arg
+    """
+    # Determine which argument is which
+    if isinstance(cases_or_value, dict) and all(isinstance(k, str) for k in cases_or_value.keys()):
+        # First arg is cases, second is context or value
+        cases = cases_or_value
+        if isinstance(value_or_context, dict) and '@' not in value_or_context:
+            ctx = value_or_context
+        else:
+            # value_or_context is the value to match
+            ctx = {'@': value_or_context} if value_or_context is not None else (context or {})
+    else:
+        # First arg is the value (from pipe), second is cases
+        value = cases_or_value
+        cases = value_or_context if isinstance(value_or_context, dict) else {}
+        ctx = {'@': value}
+    
+    # Wrap actions as steps
+    if isinstance(cases, dict):
+        wrapped_cases = {k: _wrap_as_step(v) for k, v in cases.items()}
+    elif isinstance(cases, (list, tuple)):
+        if cases and isinstance(cases[0], (list, tuple)) and len(cases[0]) == 2:
+            wrapped_cases = [(cond, _wrap_as_step(action)) for cond, action in cases]
+        else:
+            wrapped_cases = cases
+    else:
+        wrapped_cases = cases
+    
+    return await switch(wrapped_cases, ctx)
 
 async def trigger(event_name, context=dict()) -> Dict[str, Any]:
     print(f"TRIGGER: Stage '{event_name}' in attesa di attivazione esterna...")

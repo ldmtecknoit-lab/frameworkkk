@@ -133,10 +133,6 @@
     list:lib_mapped :=
         [1, 2, 3] |> map("@ * 2");
 
-    dict:lib_projected :=
-        { "nested": { "val": 99; }; }
-        |> project({ "out": "@.nested.val"; });
-
     int:lib_query_result :=
         { "data": [10, 20, 30]; } |> query("data[1]");
 

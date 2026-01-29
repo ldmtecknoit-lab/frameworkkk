@@ -706,23 +706,6 @@ class DSLVisitor:
         
         return res[0] if len(res) == 1 else tuple(res)
 
-async def _dsl_load_service(func_name, *args, **kw):
-    import framework.service.load as load
-    func = getattr(load, func_name)
-    try:
-        # Se riceve un singolo dict come argomento posizionale, lo usa come kw
-        if len(args) == 1 and isinstance(args[0], dict) and not kw:
-            kw = args[0]
-            args = ()
-        
-        if func_name == 'resource' and args and isinstance(args[0], dict) and 'path' in args[0]: args = (args[0]['path'],) + args[1:]
-        res = await func(*args, **kw)
-        return res.get('data', res) if isinstance(res, dict) else res
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        framework_log("ERROR", f"Error {func_name}: {e}", emoji="❌"); return None
-
 class LazyService:
     """Proxy that lazily loads a service from the container and allows dot-notation calls."""
     def __init__(self, service_name):
@@ -764,66 +747,6 @@ class LazyService:
         return await self._get_instance()
 
 dsl_functions = {
-    n: LazyService(n)
-    for n in ['storekeeper', 'messenger', 'executor', 'presenter', 'defender', 'tester']
-} | {
-    n: lambda *a, n=n, **kw: _dsl_load_service(n, *a, **kw) 
-    for n in ['resource', 'register']
-}
-
-_executor_proxy = dsl_functions['executor']
-dsl_functions.update({
-    'all_completed': _executor_proxy.all_completed,
-    'first_completed': _executor_proxy.first_completed,
-    'chain': _executor_proxy.chain_completed,
-    'sequential': _executor_proxy.chain_completed,
-    'fire_and_forget': _executor_proxy.together_completed
-})
-
-# Helper to wrap a function as a step for use in switch/match
-def _wrap_as_step(func):
-    """Wraps a callable as a flow.step if it's not already a tuple."""
-    if callable(func) and not isinstance(func, tuple):
-        return flow.step(func)
-    return func
-
-# Custom switch that auto-wraps functions
-async def _dsl_switch(cases_or_value, value_or_context=None, context=None):
-    """Switch that auto-wraps callables as steps.
-    
-    Can be called as:
-    - match(cases_dict, context) - standard call
-    - value | match(cases_dict) - piped call where value becomes first arg
-    """
-    # Determine which argument is which
-    if isinstance(cases_or_value, dict) and all(isinstance(k, str) for k in cases_or_value.keys()):
-        # First arg is cases, second is context or value
-        cases = cases_or_value
-        if isinstance(value_or_context, dict) and '@' not in value_or_context:
-            ctx = value_or_context
-        else:
-            # value_or_context is the value to match
-            ctx = {'@': value_or_context} if value_or_context is not None else (context or {})
-    else:
-        # First arg is the value (from pipe), second is cases
-        value = cases_or_value
-        cases = value_or_context if isinstance(value_or_context, dict) else {}
-        ctx = {'@': value}
-    
-    # Wrap actions as steps
-    if isinstance(cases, dict):
-        wrapped_cases = {k: _wrap_as_step(v) for k, v in cases.items()}
-    elif isinstance(cases, (list, tuple)):
-        if cases and isinstance(cases[0], (list, tuple)) and len(cases[0]) == 2:
-            wrapped_cases = [(cond, _wrap_as_step(action)) for cond, action in cases]
-        else:
-            wrapped_cases = cases
-    else:
-        wrapped_cases = cases
-    
-    return await flow.switch(wrapped_cases, ctx)
-
-dsl_functions.update({
     'resource': load.resource,
     'transform': flow.transform,
     'normalize': flow.normalize,
@@ -835,26 +758,11 @@ dsl_functions.update({
     'print': lambda d: (print(f"*** CUSTOM PRINT ***: {d}"), d)[1],
     'pick': lambda d, keys: {k: v for k, v in d.items() if k in keys} if isinstance(d, dict) and isinstance(keys, (list, tuple)) else d,
     'filter': lambda d, keys: {k: v for k, v in d.items() if k in keys} if isinstance(d, dict) and isinstance(keys, (list, tuple)) else d,
-    'switch': _dsl_switch, 'match': _dsl_switch,
+    'match': flow._dsl_switch,
     'batch': flow.batch, 'parallel': flow.batch,
     'race': flow.race, 'timeout': flow.timeout, 'throttle': flow.throttle,
     'catch': flow.catch, 'branch': flow.branch, 'retry': flow.retry,
     'fallback': flow.fallback,
-    'project': lambda d, m=None: (
-        (lambda data, template: (
-            (lambda res_func: (
-                [res_func(res_func, i, template) for i in data] if isinstance(data, list) else res_func(res_func, data, template)
-            ))(
-                lambda self, i, m: (
-                    {k: self(self, i, v) for k, v in m.items()} if isinstance(m, dict) else
-                    [self(self, i, x) for x in m] if isinstance(m, list) else
-                    (flow.get(i, m[2:]) if isinstance(m, str) and m.startswith("@.") else 
-                     (re.sub(r'\{([^{}]+)\}', lambda match: str(flow.get(i, match.group(1), match.group(0))), m) if isinstance(m, str) and "{" in m and "}" in m else m))
-                )
-            )
-        ))(d, m) if m is not None else d
-    ),
-    'map': lambda d, f: [mistql.query(f, data=i) for i in d] if isinstance(d, list) else d,
     'remap': lambda data, *names: [dict(zip(names, item)) for item in data] if isinstance(data, (list, tuple)) else data,
     'entries': lambda d: list(d.items()) if isinstance(d, dict) else [],
     'merge': lambda a, b: (
@@ -863,14 +771,12 @@ dsl_functions.update({
     ),
     'concat': lambda a, b: ((list(a) if isinstance(a, (list, tuple)) else [a]) + (list(b) if isinstance(b, (list, tuple)) else [b])),
     'query': lambda data, q: mistql.query(q, data=data),
-    #'resource': lambda *a, **k: _dsl_load_service('resource', *a, **k),
-    'register': lambda *a, **k: _dsl_load_service('register', *a, **k),
     'messenger': LazyService('messenger'),
     'executor': LazyService('executor'),
     **{k: v for k, v in zip(['dict','list','str','int','float','bool'], [dict,list,str,int,float,bool])},
     'not': lambda x: not x,
     'integer':int,'string':str,'boolean':bool,'number':float,'relative':int,'natural':int,'rational':float,'complex':float
-})
+}
 
 def parse_dsl_file(content):
     return ConfigTransformer().transform(Lark(grammar, parser='earley').parse(content))
