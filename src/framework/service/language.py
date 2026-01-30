@@ -106,54 +106,46 @@ class ConfigTransformer(Transformer):
             if not isinstance(a, Token) or a.type not in ('LPAR', 'RPAR', 'LSQB', 'RSQB', 'LBRACE', 'RBRACE', 'COLON', 'COMMA', 'SEMICOLON'):
                 return a
         return args[0]
+    def _normalize_key(self, x):
+        if hasattr(x, 'type'): return str(x)
+        if isinstance(x, tuple) and len(x) == 2 and x[0] == 'VAR': return str(x[1])
+        if isinstance(x, (list, tuple)) and len(x) == 1: return self._normalize_key(x[0])
+        return str(x)
+
+    def _is_trigger(self, k):
+        is_event = isinstance(k, tuple) and len(k) > 0 and k[0] == 'CALL'
+        is_cron = isinstance(k, tuple) and any(x == '*' for x in k if isinstance(x, str))
+        return is_event or is_cron
+
+    def _extract_typed_node(self, x):
+        if isinstance(x, tuple):
+            if len(x) >= 3 and x[0] == 'TYPED': return x
+            if len(x) == 1: return self._extract_typed_node(x[0])
+        return None
+
     def dictionary(self, items):
-        # Prevent recursive parsing of already transformed dictionaries
-        if len(items) == 1 and isinstance(items[0], dict):
-            return items[0]
+        if len(items) == 1 and isinstance(items[0], dict): return items[0]
             
-        res = {}
-        triggers = []
+        res, triggers = {}, []
         for i in items:
             if isinstance(i, tuple) and len(i) == 2:
-                k, v = i
-                # Check for triggers: k is a function call or a tuple containing '*'
-                is_event_trigger = isinstance(k, tuple) and len(k) > 0 and k[0] == 'CALL'
-                is_cron_trigger = isinstance(k, tuple) and any(x == '*' for x in k if isinstance(x, str))
-                
-                def extract_typed(x):
-                    if isinstance(x, tuple):
-                        if len(x) >= 3 and x[0] == 'TYPED': return x
-                        if len(x) == 1: return extract_typed(x[0])
-                    return None
-
-                t_node = extract_typed(k)
-                
-                # Normalize key to string if it's a Token or simple wrapper
-                def normalize_key(x):
-                    if hasattr(x, 'type'): return str(x)
-                    if isinstance(x, tuple) and len(x) == 2 and x[0] == 'VAR': return str(x[1])
-                    if isinstance(x, (list, tuple)) and len(x) == 1: return normalize_key(x[0])
-                    return str(x)
-
-                if is_event_trigger or is_cron_trigger:
-                    triggers.append((k, v))
-                elif t_node:
-                    res[t_node] = v
-                else:
-                    res[normalize_key(k)] = v
+                self._process_pair(i, res, triggers)
             elif isinstance(i, tuple) and i[0] == 'CALL':
-                # Use a random key or the function name as key for statements
                 res[f"__stmt_{i[1]}"] = i
             elif isinstance(i, dict):
-                # Another fail-safe for already parsed dictionaries in the list
                 res.update(i)
-            else:
-                # Fallback
-                pass
         
-        if triggers:
-            res['__triggers__'] = triggers
+        if triggers: res['__triggers__'] = triggers
         return res
+
+    def _process_pair(self, pair, res, triggers):
+        k, v = pair
+        if self._is_trigger(k):
+            triggers.append((k, v))
+        else:
+            t_node = self._extract_typed_node(k)
+            key = t_node if t_node else self._normalize_key(k)
+            res[key] = v
     def binary_op(self, args):
         l, o, r = args[0], args[1], args[2]
         m = {'+':'ADD','-':'SUB','*':'MUL','/':'DIV','%':'MOD','==':'EQ','!=':'NEQ','>=':'GTE','<=':'LTE','>':'GT','<':'LT'}
@@ -242,45 +234,42 @@ class DSLVisitor:
         return str(data) == str(pattern)
 
     async def _resolve(self, node, ctx):
-        # Treat Token and VAR tuples similarly
         is_var = isinstance(node, tuple) and len(node) == 2 and node[0] == 'VAR'
         if not hasattr(node, 'type') and not is_var and not isinstance(node, str):
             return node
             
         name = node[1] if is_var else str(node)
+        if '.' in name: return await self._resolve_dotted(name, ctx)
         
-        # Handle dot notation (e.g., service.config.timeout)
-        if '.' in name:
-            parts = name.split('.')
-            val = await self._resolve(parts[0], ctx)
-            for part in parts[1:]:
-                if isinstance(val, dict):
-                    val = val.get(part)
-                else:
-                    val = getattr(val, part, None)
-                if val is None: break
-            return val
-
+        # Priority: Context -> Function Map -> Root (Typed/Standard) -> Fallback
         if ctx and name in ctx: return await self.visit(ctx[name], ctx)
+        if name in self.functions_map: return self.functions_map[name]
         
-        # Priority to functions map
-        if name in self.functions_map:
-            return self.functions_map[name]
-            
-        # Check in root_data (handling typed names)
+        root_val = await self._resolve_from_root(name, ctx)
+        if root_val is not None: return root_val
+
+        return self._resolve_type_fallback(name)
+
+    async def _resolve_dotted(self, name, ctx):
+        parts = name.split('.')
+        val = await self._resolve(parts[0], ctx)
+        for part in parts[1:]:
+            if isinstance(val, dict): val = val.get(part)
+            else: val = getattr(val, part, None)
+            if val is None: break
+        return val
+
+    async def _resolve_from_root(self, name, ctx):
         if name in self.root_data: 
             return await self.visit(self.root_data[name], ctx)
-        
         for k in self.root_data:
             if isinstance(k, tuple) and len(k) == 3 and k[0] == 'TYPED' and k[2] == name:
                 return await self.visit(self.root_data[k], ctx)
+        return None
 
-        # Fallback to standard types if not shadowed
+    def _resolve_type_fallback(self, name):
         type_map = {'dict': dict, 'list': list, 'str': str, 'int': int, 'float': float, 'bool': bool, 'any': object, 'tuple': tuple}
-        if name in type_map:
-            return type_map[name]
-        
-        return name
+        return type_map.get(name, name)
 
     def _validate_type(self, value, type_name, var_name):
         """Validates that a value matches the declared type name."""
@@ -310,65 +299,50 @@ class DSLVisitor:
             raise TypeError(f"Errore di tipo: la variabile '{var_name}' è dichiarata come {type_name}, ma ha valore {type(value).__name__} ('{value}')")
 
     async def visit(self, node, ctx=None):
-        if isinstance(node, dict):
-            # Use a working context to allow references to previous definitions in the same block
-            working_ctx = (ctx or {}).copy()
-            # Inject DSL executor for flow support
-            working_ctx['__execute_dsl_function__'] = self.execute_dsl_function
-            res = {}
-            
-            # Extract triggers first but evaluate them later
-            triggers = node.pop('__triggers__', [])
-            
-            # 1. Resolve all items sequentially, updating the working context
-            for k, v in node.items():
-                val = await self.visit(v, working_ctx)
-                if isinstance(k, tuple) and len(k) == 3 and k[0] == 'TYPED':
-                    _, type_name, name = k
-                    self._validate_type(val, type_name, name)
-                    res[name] = val
-                    working_ctx[name] = val
-                    # print(f"DEBUG: Assigned {name} (typed {type_name}) = {val}")
-                else:
-                    name_str = str(k)
-                    res[name_str] = val
-                    working_ctx[name_str] = val
-                    # print(f"DEBUG: Assigned {name_str} = {val}")
-            
-            # 2. Start triggers (concurrent)
-            for trigger_key, action in triggers:
-                task = asyncio.create_task(self._start_trigger(trigger_key, action, working_ctx))
-                self._background_tasks.append(task)
-            
-            return res
+        if isinstance(node, dict): return await self._visit_dict(node, ctx)
         if isinstance(node, list): return [await self.visit(x, ctx) for x in node]
-        if isinstance(node, tuple) and node:
-            tag = node[0]
-            if isinstance(tag, str) and tag in self.ops:
-                return self.ops[tag](*[await self.visit(a, ctx) for a in node[1:]])
-            if tag == 'EXPRESSION': return await self.evaluate_expression(node[1], ctx)
-            if tag == 'CALL': return await self.execute_call(node, ctx)
-            if tag == 'TYPED':
-                # Resolving a typed name reference
-                _, type_name, name = node
-                val = await self._resolve(name, ctx)
-                # Validation could be added here if needed
-                return val
-            
-            if tag == 'VAR':
-                return await self._resolve(node, ctx)
-            
-            # Detect function definition: (args), {body}, (returns)
-            # We must NOT visit the body (dict) now, and we shouldn't resolve the signature yet
-            if len(node) == 3 and isinstance(node[1], dict): 
-                return node
-                
-            return tuple([await self.visit(x, ctx) for x in node])
+        if isinstance(node, tuple) and node: return await self._visit_tuple(node, ctx)
+        return await self._visit_scalar(node, ctx)
+
+    async def _visit_dict(self, node, ctx):
+        working_ctx = (ctx or {}).copy()
+        working_ctx['__execute_dsl_function__'] = self.execute_dsl_function
+        res = {}
+        triggers = node.pop('__triggers__', [])
         
-        # If it's a Token or VAR tuple, treat it as a variable name to resolve
-        if hasattr(node, 'type') or (isinstance(node, tuple) and len(node) == 2 and node[0] == 'VAR'): 
-            return await self._resolve(node, ctx)
+        for k, v in node.items():
+            val = await self.visit(v, working_ctx)
+            if isinstance(k, tuple) and len(k) == 3 and k[0] == 'TYPED':
+                _, type_name, name = k
+                self._validate_type(val, type_name, name)
+                res[name] = val
+                working_ctx[name] = val
+            else:
+                name_str = str(k)
+                res[name_str] = val
+                working_ctx[name_str] = val
+        
+        for trigger_key, action in triggers:
+            task = asyncio.create_task(self._start_trigger(trigger_key, action, working_ctx))
+            self._background_tasks.append(task)
+        return res
+
+    async def _visit_tuple(self, node, ctx):
+        tag = node[0]
+        if isinstance(tag, str) and tag in self.ops:
+            return self.ops[tag](*[await self.visit(a, ctx) for a in node[1:]])
+        if tag == 'EXPRESSION': return await self.evaluate_expression(node[1], ctx)
+        if tag == 'CALL': return await self.execute_call(node, ctx)
+        if tag == 'VAR': return await self._resolve(node, ctx)
+        if tag == 'TYPED': return await self._resolve(node[2], ctx)
+        
+        # Detect function definition: (args), {body}, (returns)
+        if len(node) == 3 and isinstance(node[1], dict): return node
             
+        return tuple([await self.visit(x, ctx) for x in node])
+
+    async def _visit_scalar(self, node, ctx):
+        if hasattr(node, 'type'): return await self._resolve(node, ctx)
         return node
 
     async def _start_trigger(self, trigger_key, action, ctx):
