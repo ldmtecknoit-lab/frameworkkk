@@ -77,10 +77,6 @@ grammar = r"""
     %ignore COMMENT
 """
 
-class DSLVariable:
-    def __init__(self, name): self.name = name
-    def __repr__(self): return f"VAR({self.name})"
-    def __str__(self): return self.name
 
 class ConfigTransformer(Transformer):
     def start(self, items): return items[0] if items else {}
@@ -135,7 +131,7 @@ class ConfigTransformer(Transformer):
                 # Normalize key to string if it's a Token or simple wrapper
                 def normalize_key(x):
                     if hasattr(x, 'type'): return str(x)
-                    if isinstance(x, DSLVariable): return str(x.name)
+                    if isinstance(x, tuple) and len(x) == 2 and x[0] == 'VAR': return str(x[1])
                     if isinstance(x, (list, tuple)) and len(x) == 1: return normalize_key(x[0])
                     return str(x)
 
@@ -182,9 +178,10 @@ class ConfigTransformer(Transformer):
     def false(self, _): return False
     def simple_key(self, s): 
         # For qualified names or simple keys, we treat them as variables
-        # Ensure we take the string value if it's a list or token
-        val = str(s[0] if isinstance(s, list) else s)
-        return DSLVariable(val)
+        # Ensure we take the value if it's already a transformed tuple (like TYPED)
+        val = s[0] if isinstance(s, list) else s
+        if isinstance(val, tuple): return val
+        return ('VAR', str(val))
     def any_val(self, _): return '*'
     def typed_name_node(self, args): return ('TYPED', str(args[0]), str(args[1]))
     def pair(self, args): return args[0]
@@ -245,11 +242,12 @@ class DSLVisitor:
         return str(data) == str(pattern)
 
     async def _resolve(self, node, ctx):
-        # Treat Token and DSLVariable similarly
-        if not hasattr(node, 'type') and type(node).__name__ != 'DSLVariable' and not isinstance(node, str):
+        # Treat Token and VAR tuples similarly
+        is_var = isinstance(node, tuple) and len(node) == 2 and node[0] == 'VAR'
+        if not hasattr(node, 'type') and not is_var and not isinstance(node, str):
             return node
             
-        name = str(node.name if hasattr(node, 'name') else node)
+        name = node[1] if is_var else str(node)
         
         # Handle dot notation (e.g., service.config.timeout)
         if '.' in name:
@@ -357,6 +355,9 @@ class DSLVisitor:
                 # Validation could be added here if needed
                 return val
             
+            if tag == 'VAR':
+                return await self._resolve(node, ctx)
+            
             # Detect function definition: (args), {body}, (returns)
             # We must NOT visit the body (dict) now, and we shouldn't resolve the signature yet
             if len(node) == 3 and isinstance(node[1], dict): 
@@ -364,8 +365,8 @@ class DSLVisitor:
                 
             return tuple([await self.visit(x, ctx) for x in node])
         
-        # If it's a Token or string identifier, treat it as a variable name to resolve
-        if hasattr(node, 'type') or type(node).__name__ == 'DSLVariable': 
+        # If it's a Token or VAR tuple, treat it as a variable name to resolve
+        if hasattr(node, 'type') or (isinstance(node, tuple) and len(node) == 2 and node[0] == 'VAR'): 
             return await self._resolve(node, ctx)
             
         return node
@@ -447,9 +448,10 @@ class DSLVisitor:
 
     async def _execute(self, name, p_args, k_args, ctx=None):
         name = str(name)
-        # Resolve any remaining DSLVariables in arguments
-        p_args = [(await self.visit(a)) if type(a).__name__ == 'DSLVariable' else a for a in p_args]
-        k_args = {k: (await self.visit(v)) if type(v).__name__ == 'DSLVariable' else v for k, v in k_args.items()}
+        # Resolve any remaining VAR tuples in arguments
+        def is_dsl_var(x): return isinstance(x, tuple) and len(x) == 2 and x[0] == 'VAR'
+        p_args = [(await self.visit(a)) if is_dsl_var(a) else a for a in p_args]
+        k_args = {k: (await self.visit(v)) if is_dsl_var(v) else v for k, v in k_args.items()}
         
         func = self.functions_map.get(name)
         if name == 'include' and p_args:
@@ -608,8 +610,8 @@ class DSLVisitor:
                         _, name, p_nodes, k_nodes = _op
                     elif isinstance(_op, tuple) and _op[0] == 'TYPED':
                         name = str(_op[2])
-                    elif isinstance(_op, DSLVariable):
-                        name = str(_op.name)
+                    elif isinstance(_op, tuple) and len(_op) == 2 and _op[0] == 'VAR':
+                        name = str(_op[1])
                     elif isinstance(_op, str):
                         name = _op
                     elif isinstance(_op, (list, tuple)) and len(_op) == 3 and isinstance(_op[1], dict):
@@ -664,7 +666,8 @@ class DSLVisitor:
         
         def get_p(p):
             if isinstance(p, tuple) and p[0] == 'TYPED': return (p[2], p[1])
-            return (p.name if isinstance(p, DSLVariable) else str(p), None)
+            if isinstance(p, tuple) and len(p) == 2 and p[0] == 'VAR': return (p[1], None)
+            return (str(p), None)
             
         def is_multi(d):
             if not isinstance(d, (list, tuple)) or not d: return False
@@ -706,77 +709,6 @@ class DSLVisitor:
         
         return res[0] if len(res) == 1 else tuple(res)
 
-class LazyService:
-    """Proxy that lazily loads a service from the container and allows dot-notation calls."""
-    def __init__(self, service_name):
-        self._service_name = service_name
-        self._instance = None
-
-    async def _get_instance(self):
-        if self._instance is None:
-            import framework.service.context as context
-            # Poll until the service is registered in the container (with timeout)
-            attempts = 0
-            while not hasattr(context.container, self._service_name) and attempts < 20:
-                await asyncio.sleep(0.5)
-                attempts += 1
-            
-            if not hasattr(context.container, self._service_name):
-                framework_log("WARNING", f"⚠️ Servizio '{self._service_name}' non trovato nel container dopo 10 secondi.", emoji="⏳")
-                return None
-            # Call the provider to get the instance
-            self._instance = getattr(context.container, self._service_name)()
-        return self._instance
-
-    def __getattr__(self, name):
-        # Return a dispatcher that waits for the instance
-        async def dispatcher(*args, **kwargs):
-            instance = await self._get_instance()
-            if instance is None:
-                framework_log("ERROR", f"❌ Impossibile chiamare '{name}' su servizio '{self._service_name}': istanza non trovata.")
-                return {"success": False, "errors": ["Service not found"]}
-            attr = getattr(instance, name)
-            if callable(attr):
-                res = attr(*args, **kwargs)
-                return await res if asyncio.iscoroutine(res) else res
-            return attr
-        return dispatcher
-
-    async def __call__(self, *args, **kwargs):
-        # Direct call returns the instance (waiting if necessary)
-        return await self._get_instance()
-
-dsl_functions = {
-    'resource': load.resource,
-    'transform': flow.transform,
-    'normalize': flow.normalize,
-    'put': flow.put,
-    'format': flow.format, 'foreach': flow.foreach, 'convert': flow.convert, 'get': flow.get,
-    'keys': lambda d: list(d.keys()) if isinstance(d, dict) else [],
-    'values': lambda d: list(d.values()) if isinstance(d, dict) else [],
-    'items': lambda d: list(d.items()) if isinstance(d, dict) else [],
-    'print': lambda d: (print(f"*** CUSTOM PRINT ***: {d}"), d)[1],
-    'pick': lambda d, keys: {k: v for k, v in d.items() if k in keys} if isinstance(d, dict) and isinstance(keys, (list, tuple)) else d,
-    'filter': lambda d, keys: {k: v for k, v in d.items() if k in keys} if isinstance(d, dict) and isinstance(keys, (list, tuple)) else d,
-    'match': flow._dsl_switch,
-    'batch': flow.batch, 'parallel': flow.batch,
-    'race': flow.race, 'timeout': flow.timeout, 'throttle': flow.throttle,
-    'catch': flow.catch, 'branch': flow.branch, 'retry': flow.retry,
-    'fallback': flow.fallback,
-    'remap': lambda data, *names: [dict(zip(names, item)) for item in data] if isinstance(data, (list, tuple)) else data,
-    'entries': lambda d: list(d.items()) if isinstance(d, dict) else [],
-    'merge': lambda a, b: (
-        (a | b) if isinstance(a, dict) and isinstance(b, dict) else 
-        ((list(a) if isinstance(a, (list, tuple)) else [a]) + (list(b) if isinstance(b, (list, tuple)) else [b]))
-    ),
-    'concat': lambda a, b: ((list(a) if isinstance(a, (list, tuple)) else [a]) + (list(b) if isinstance(b, (list, tuple)) else [b])),
-    'query': lambda data, q: mistql.query(q, data=data),
-    'messenger': LazyService('messenger'),
-    'executor': LazyService('executor'),
-    **{k: v for k, v in zip(['dict','list','str','int','float','bool'], [dict,list,str,int,float,bool])},
-    'not': lambda x: not x,
-    'integer':int,'string':str,'boolean':bool,'number':float,'relative':int,'natural':int,'rational':float,'complex':float
-}
 
 def parse_dsl_file(content):
     return ConfigTransformer().transform(Lark(grammar, parser='earley').parse(content))
@@ -814,3 +746,39 @@ async def run_dsl_tests(visitor, parsed_data):
             print(f"🔴 EXC: {e}"); all_passed = False
     print("="*40 + f"\nRESULT: {'🟢 PASSED' if all_passed else '🔴 FAILED'}\n" + "="*40)
     return all_passed
+
+dsl_functions = {
+    'resource': load.resource,
+    'transform': flow.transform,
+    'normalize': flow.normalize,
+    'put': flow.put,
+    'format': flow.format, 
+    'foreach': flow.foreach, 
+    'convert': flow.convert, 
+    'get': flow.get,
+    'keys': lambda d: list(d.keys()) if isinstance(d, dict) else [],
+    'values': lambda d: list(d.values()) if isinstance(d, dict) else [],
+    'items': lambda d: list(d.items()) if isinstance(d, dict) else [],
+    'print': lambda d: (print(f"*** CUSTOM PRINT ***: {d}"), d)[1],
+    'pick': lambda d, keys: {k: v for k, v in d.items() if k in keys} if isinstance(d, dict) and isinstance(keys, (list, tuple)) else d,
+    'filter': lambda d, keys: {k: v for k, v in d.items() if k in keys} if isinstance(d, dict) and isinstance(keys, (list, tuple)) else d,
+    'match': flow._dsl_switch,
+    'batch': flow.batch, 
+    'parallel': flow.batch,
+    'race': flow.race, 'timeout': flow.timeout, 'throttle': flow.throttle,
+    'catch': flow.catch, 'branch': flow.branch, 'retry': flow.retry,
+    'fallback': flow.fallback,
+    'remap': lambda data, *names: [dict(zip(names, item)) for item in data] if isinstance(data, (list, tuple)) else data,
+    'entries': lambda d: list(d.items()) if isinstance(d, dict) else [],
+    'merge': lambda a, b: (
+        (a | b) if isinstance(a, dict) and isinstance(b, dict) else 
+        ((list(a) if isinstance(a, (list, tuple)) else [a]) + (list(b) if isinstance(b, (list, tuple)) else [b]))
+    ),
+    'concat': lambda a, b: ((list(a) if isinstance(a, (list, tuple)) else [a]) + (list(b) if isinstance(b, (list, tuple)) else [b])),
+    'query': lambda data, q: mistql.query(q, data=data),
+    #'messenger': LazyService('messenger'),
+    #'executor': LazyService('executor'),
+    **{k: v for k, v in zip(['dict','list','str','int','float','bool'], [dict,list,str,int,float,bool])},
+    'not': lambda x: not x,
+    'integer':int,'string':str,'boolean':bool,'number':float,'relative':int,'natural':int,'rational':float,'complex':float
+}

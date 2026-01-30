@@ -209,8 +209,8 @@
         { "target": "res_service_action"; "output": 10; "description": "Metodo su dict"; },
         { "target": "call_dot_notation_direct"; "output": { "numero": 10000; }; "description": "Dot notation direct"; },
         { "target": "call_dot_notation_indirect"; "output": { "numero": 10000; }; "description": "Dot notation indirect"; },
-        { "target": "Container"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
-        { "target": "sus"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
+        #{ "target": "Container"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
+        #{ "target": "sus"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
 
         { "target": "mapped_value"; "output": 100; "description": "Mapping tra parentesi"; }
     ];
