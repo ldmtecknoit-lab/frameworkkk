@@ -412,146 +412,86 @@ class ConfigTransformer(Transformer):
         """Check if list has single item"""
         return len(items) == 1
     
-    def _filter_none_items(self, items: List) -> List:
-        """Remove None items from list"""
-        return [i for i in items if i is not None]
+    """
+    Refactored transformer that uses a data-driven rule map.
+    Eliminates the need for dozens of individual methods.
+    """
     
-    def _parse_number(self, num_str: str) -> Union[int, float]:
-        """Parse number string to int or float"""
-        try:
-            return int(num_str) if '.' not in num_str else float(num_str)
-        except ValueError as e:
-            raise DSLSyntaxError(f"Invalid number: {num_str}") from e
-    
-    # Atomic transformers
-    def start(self, items): 
-        return items[0] if items else {}
-    
-    def call_args(self, args): 
-        return args
-    
-    def arg_pos(self, args): 
-        return ('POS', args[0])
-    
-    def arg_kw(self, args): 
-        return ('KW', str(args[0]), args[1])
-    
+    RULES = {
+        'start': lambda items: items[0] if items else {},
+        'call_args': lambda args: args,
+        'arg_pos': lambda args: ('POS', args[0]),
+        'arg_kw': lambda args: ('KW', str(args[0]), args[1]),
+        'declaration': lambda args: (args[0], args[1]),
+        'mapping': lambda args: (args[0], args[1]),
+        'pair': lambda args: args[0],
+        'statement': lambda args: args[0],
+        'binary_op': lambda args: (f'OP_{OPS_MAP[str(args[1])]}', args[0], args[2]),
+        'power': lambda args: ('OP_POW', args[0], args[2]),
+        'and_op': lambda args: ('OP_AND', args[0], args[2] if len(args) > 2 else args[1]),
+        'or_op': lambda args: ('OP_OR', args[0], args[2] if len(args) > 2 else args[1]),
+        'not_op': lambda args: ('OP_NOT', args[1] if len(args) > 1 else args[0], None),
+        'number': lambda n: float(str(n[0])) if '.' in str(n[0]) else int(str(n[0])),
+        'string': lambda s: StringUtil.strip_quotes(str(s[0])),
+        'true': lambda _: True,
+        'false': lambda _: False,
+        'any_val': lambda _: '*',
+        'typed_name_node': lambda args: ('TYPED', str(args[0]), str(args[1]))
+    }
+
+    def __getattr__(self, name):
+        """Dynamic dispatch for rules not explicitly defined"""
+        if name in self.RULES:
+            return self.RULES[name]
+        return super().__getattribute__(name)
+
     def pipe_node(self, items):
-        filtered = self._filter_pipes(items)
-        return filtered[0] if self._is_single_item_list(filtered) else ('EXPRESSION', filtered)
-    
-    def declaration(self, args): 
-        return args[0], args[1]
-    
-    def mapping(self, args): 
-        return args[0], args[1]
-    
+        filtered = [i for i in items if not (NodeTypeChecker.is_token(i) and i.type == 'PIPE')]
+        return filtered[0] if len(filtered) == 1 else ('EXPRESSION', filtered)
+
     def function_call(self, args):
-        name = self._extract_call_name(args[0])
+        name = NodeExtractor.get_typed_name(args[0]) if NodeTypeChecker.is_typed(args[0]) else str(args[0])
         raw_args = args[1] if len(args) > 1 else []
-        pos_args, kw_args = self._split_args_by_type(raw_args)
-        return self._create_call_tuple(name, pos_args, kw_args)
-    
-    def pair(self, args): 
-        return args[0]
-    
-    def statement(self, args): 
-        return args[0]
-    
-    def atom(self, args):
-        for a in args:
-            if not NodeTypeChecker.is_token(a):
-                return a
-        return args[0]
-    
+        pos_args = tuple(a[1] for a in raw_args if a[0] == 'POS')
+        kw_args = {a[1]: a[2] for a in raw_args if a[0] == 'KW'}
+        return ('CALL', name, pos_args, kw_args)
+
+    def atom(self, items):
+        for i in items:
+            if not NodeTypeChecker.is_token(i): return i
+        return items[0]
+
     def dictionary(self, items):
-        if self._is_single_item_list(items) and isinstance(items[0], dict): 
-            return items[0]
-        
         res, triggers = {}, []
         for item in items:
-            self._process_dict_item(item, res, triggers)
-        
-        if triggers: 
-            res['__triggers__'] = triggers
+            if isinstance(item, dict): 
+                res.update(item)
+            elif isinstance(item, tuple) and len(item) == 2:
+                k, v = item
+                if NodeTypeChecker.is_trigger(k): triggers.append((k, v))
+                else: res[k if NodeTypeChecker.is_typed(k) else str(k)] = v
+            elif NodeTypeChecker.is_call(item):
+                res[f"__stmt_{item[1]}"] = item
+        if triggers: res['__triggers__'] = triggers
         return res
-    
-    def _process_dict_item(self, item, res: Dict, triggers: List):
-        """Process dictionary item"""
-        if isinstance(item, tuple) and len(item) == 2:
-            self._process_key_value_pair(item, res, triggers)
-        elif NodeTypeChecker.is_call(item):
-            self._add_statement(item, res)
-        elif isinstance(item, dict):
-            res.update(item)
-    
-    def _process_key_value_pair(self, pair: Tuple, res: Dict, triggers: List):
-        """Process key-value pair"""
-        k, v = pair
-        if NodeTypeChecker.is_trigger(k):
-            triggers.append((k, v))
-        else:
-            key = self._normalize_key(k)
-            res[key] = v
-    
-    def _add_statement(self, call_node: Tuple, res: Dict):
-        """Add statement to result"""
-        name = NodeExtractor.get_call_name(call_node)
-        res[f"__stmt_{name}"] = call_node
-    
-    def _normalize_key(self, k):
-        """Normalize dictionary key"""
-        if NodeTypeChecker.is_typed(k): 
-            return k
-        if NodeTypeChecker.is_var(k): 
-            return NodeExtractor.get_var_name(k)
-        return str(k) if hasattr(k, 'type') else k
-    
-    def binary_op(self, args):
-        symbol = self._extract_op_symbol(args[1])
-        op_name = self._map_op_to_name(symbol)
-        return self._create_op_tuple(op_name, args[0], args[2])
-    
-    def power(self, args): 
-        return self._create_op_tuple('POW', args[0], args[2])
-    
-    def and_op(self, args): 
-        return self._create_op_tuple('AND', args[0], args[2] if len(args) > 2 else args[1])
-    
-    def or_op(self, args): 
-        return self._create_op_tuple('OR', args[0], args[2] if len(args) > 2 else args[1])
-    
-    def not_op(self, args): 
-        return self._create_op_tuple('NOT', args[1] if len(args) > 1 else args[0], None)
-    
+
+
     def tuple_(self, items):
-        filtered = self._filter_none_items(items)
-        return filtered[0] if self._is_single_item_list(filtered) else tuple(filtered)
-    
-    def list_(self, items): 
-        return self._filter_none_items(items)
-    
-    def number(self, n): 
-        return self._parse_number(str(n[0]))
-    
-    def string(self, s): 
-        return StringUtil.strip_quotes(str(s[0]))
-    
-    def true(self, _): 
-        return True
-    
-    def false(self, _): 
-        return False
-    
+        it = [i for i in items if i is not None]
+        return it[0] if len(it) == 1 else tuple(it)
+
+    def list_(self, items):
+        return [i for i in items if i is not None]
+
     def simple_key(self, s):
-        val = s[0] if isinstance(s, list) else s
-        return val if isinstance(val, tuple) else ('VAR', str(val))
-    
-    def any_val(self, _): 
-        return '*'
-    
-    def typed_name_node(self, args): 
-        return ('TYPED', str(args[0]), str(args[1]))
+        v = s[0] if isinstance(s, list) else s
+        return v if isinstance(v, tuple) else ('VAR', str(v))
+
+OPS_MAP = {
+    '+':'ADD','-':'SUB','*':'MUL','/':'DIV','%':'MOD',
+    '==':'EQ','!=':'NEQ','>=':'GTE','<=':'LTE','>':'GT','<':'LT'
+}
+
 
 # ============================================================================
 # TYPE VALIDATOR (Enhanced with better error messages)
@@ -855,6 +795,18 @@ class DSLVisitor:
             'CALL': self.execute_call,
             'EXPRESSION': lambda n, c: self.evaluate_expression(n[1], c),
         }
+        
+    def _setup_resolvers(self):
+        """Initialize the resolver pipeline"""
+        # All resolvers must accept (name, ctx)
+        self.RESOLVERS = [
+            self._resolve_from_context,
+            lambda n, c: self._resolve_from_functions(n),
+            self._resolve_from_root,
+            lambda n, c: self._resolve_as_type(n)
+        ]
+
+
 
         
     def _inject_store_functions(self):
@@ -914,6 +866,7 @@ class DSLVisitor:
             self._init_root_data(data)
             self._inject_executor_to_root()
             self._setup_processors()
+            self._setup_resolvers()
             
             # Initialize DataStore if not already present
             if not self.store:
@@ -922,6 +875,7 @@ class DSLVisitor:
                 self.store._state = self.root_data
             
             self._inject_store_functions()
+
 
 
             
@@ -1003,7 +957,7 @@ class DSLVisitor:
         return getattr(val, attr_name, None)
     
     async def _resolve(self, node, ctx):
-        """Resolve node with priority chain"""
+        """Resolve node using the data-driven RESOLVERS pipeline"""
         if not NodeTypeChecker.is_resolvable(node):
             return node
         
@@ -1012,21 +966,24 @@ class DSLVisitor:
         if self._should_resolve_dotted(name):
             return await self._resolve_dotted_path(name, ctx)
         
-        # Priority chain: context -> functions -> root -> type
-        if ctx:
-            ctx_result = await self._resolve_from_context(name, ctx)
-            if ctx_result is not None:
-                return ctx_result
+        # Use a sentinel to detect if value was found (even if None)
+        NOT_FOUND = object()
         
-        func_result = self._resolve_from_functions(name)
-        if func_result is not None:
-            return func_result
-        
-        root_result = await self._resolve_from_root(name, ctx)
-        if root_result is not None:
-            return root_result
-        
-        return self._resolve_as_type(name)
+        # Dispatch to the resolver pipeline (Data-Driven Priority)
+        for resolver_func in self.RESOLVERS:
+            try:
+                res = resolver_func(name, ctx)
+                if asyncio.iscoroutine(res): res = await res
+                if res is not None: return res
+            except Exception as e:
+                # Log only unexpected errors, not signature mismatches (though we fixed them)
+                if not isinstance(e, TypeError):
+                    framework_log("DEBUG", f"Resolver error: {e}")
+                continue
+            
+        return name
+
+
 
     # ========================================================================
     # VISIT (The core recursive engine)
@@ -1112,30 +1069,37 @@ class DSLVisitor:
         """Add background task"""
         self._background_tasks.append(task)
     
-    async def _visit_dict(self, node, ctx):
-        """Visit dictionary node"""
+    async def _visit_dict(self, node: Dict, ctx):
+        """Visit dictionary node using a pipeline of processors"""
         working_ctx = self._prepare_working_context(ctx)
         res = {}
         
+        # ITEM_PROCESSORS: Pipeline per gestire ogni coppia chiave-valore
         for k, v in node.items():
-            try:
-                val = await self.visit(v, working_ctx)
-                self._validate_typed_key(k, val)
-                key_name = self._extract_key_name(k)
-                res[key_name] = val
-                self._update_context_with_value(working_ctx, key_name, val)
-            except DSLError:
-                raise
-            except Exception as e:
-                framework_log("ERROR", f"Error processing key '{k}': {e}", emoji="❌")
-                raise DSLRuntimeError(f"Error processing key '{k}': {str(e)}") from e
+            if k == '__triggers__': continue
+            
+            # Step 1: Resolve Value
+            val = await self.visit(v, working_ctx)
+            
+            # Step 2: Validate & Extract Name (Data-Driven)
+            self._validate_typed_key(k, val)
+            key_name = self._extract_key_name(k)
+            
+            # Step 3: Bind & Update
+            res[key_name] = val
+            self._update_context_with_value(working_ctx, key_name, val)
         
-        triggers = self._extract_triggers(node)
-        for trigger_key, action in triggers:
-            task = self._create_trigger_task(trigger_key, action, working_ctx)
-            self._add_background_task(task)
-        
+        # TRIGGER_PROCESSOR: Gestione dichiarativa dei trigger
+        await self._process_triggers(node.get('__triggers__', []), working_ctx)
         return res
+
+    async def _process_triggers(self, triggers: List, ctx: Dict):
+        """Dichiarative trigger processing"""
+        for trigger_key, action in triggers:
+            self._add_background_task(
+                asyncio.create_task(self._start_trigger(trigger_key, action, ctx))
+            )
+
 
     # ========================================================================
     # TUPLE VISIT
@@ -1329,30 +1293,40 @@ class DSLVisitor:
         return NodeExtractor.get_dict_value_or_none(self.functions_map, name)
     
     async def _execute(self, name: str, p_args: List, k_args: Dict, ctx=None):
-        """Execute function"""
-        # Resolve VAR tuples
-        p_args = await ArgumentResolver.resolve_positional_args(p_args, self)
-        k_args = await ArgumentResolver.resolve_keyword_args(k_args, self)
-        
-        if self._is_include_call(name, p_args):
-            return await self._handle_include(p_args[0])
-        
-        if self._is_qualified_name(name):
-            return await self._execute_qualified(name, p_args, k_args, ctx)
-        
-        func = self._get_from_function_map(name)
-        if func:
-            return await self._call_function(func, p_args, k_args, ctx)
-        
-        dsl_func = await self._resolve_func(name, ctx)
-        if NodeTypeChecker.is_function_def(dsl_func):
-            return await self.execute_dsl_function(dsl_func, p_args, k_args)
-        
-        if callable(dsl_func):
-            return await AsyncExecutor.call_function(dsl_func, p_args, k_args)
-        
-        framework_log("ERROR", f"Function {name} not found", emoji="🤷")
-        raise DSLRuntimeError(f"Function '{name}' not found")
+        """Execute function using a Declarative Dispatcher (0% Imperative)"""
+        p = await ArgumentResolver.resolve_positional_args(p_args, self)
+        k = await ArgumentResolver.resolve_keyword_args(k_args, self)
+
+        # 1. Dispatch Table (Condition -> Action)
+        DISPATCH = [
+            (name == 'include' and p, lambda: self._handle_include(p[0])),
+            (self._is_qualified_name(name), lambda: self._execute_qualified(name, p, k, ctx)),
+            (self._get_from_function_map(name), lambda: self._call_function(self._get_from_function_map(name), p, k, ctx)),
+        ]
+
+        # 2. Execution Logic
+        for condition, action in DISPATCH:
+            if condition:
+                return await AsyncExecutor.await_if_needed(action())
+
+        # 3. Dynamic Resolve Fallback
+        res = await self._execute_resolved(name, p, k, ctx)
+        if res is not None: 
+            return res
+            
+        # If we reach here, and it's not a known function, it's an error
+        raise DSLRuntimeError(f"Function '{name}' not found or could not be executed")
+
+
+    async def _execute_resolved(self, name: str, p_args: List, k_args: Dict, ctx: Dict):
+        """Resolve and execute strategy"""
+        target = await self._resolve_func(name, ctx)
+        if NodeTypeChecker.is_function_def(target):
+            return await self.execute_dsl_function(target, p_args, k_args)
+        if callable(target):
+            return await AsyncExecutor.call_function(target, p_args, k_args)
+        return None
+
 
     # ========================================================================
     # INCLUDE HANDLER
@@ -1665,11 +1639,27 @@ class DSLVisitor:
         return results[0] if len(results) == 1 else tuple(results)
     
     async def execute_dsl_function(self, func_def, p_args, k_args=None):
-        """Execute DSL function"""
-        in_def, body, out_def = self._extract_function_parts(func_def)
-        ctx = await self._map_params_to_context(in_def, p_args, k_args or {})
-        ctx = await self._execute_function_body(body, ctx)
-        return await self._extract_outputs(out_def, ctx)
+        """
+        Execute DSL function as a Functional Blueprint.
+        No imperative steps, just a flow of data transformations.
+        """
+        blueprint = self._extract_function_parts(func_def)
+        
+        # Pipeline: Map Params -> Execute Body -> Extract Outputs
+        pipe = [
+            lambda ctx: self._map_params_to_context(blueprint[0], p_args, k_args or {}),
+            lambda ctx: self._execute_function_body(blueprint[1], ctx),
+            lambda ctx: self._extract_outputs(blueprint[2], ctx)
+        ]
+        
+        data = {} # Initial empty context for function
+        for stage in pipe:
+            res = stage(data)
+            data = await res if asyncio.iscoroutine(res) else res
+            
+        return data # This is the result of the last stage (_extract_outputs)
+
+
 
     # ========================================================================
     # PARAM EXTRACTION

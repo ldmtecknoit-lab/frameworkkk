@@ -1,54 +1,54 @@
 [ERROR] Impossibile caricare il servizio core 'test': ["File non trovato: framework/service/test.py. Provati: ['framework/service/test.py', 'src/framework/service/test.py', '/home/development/framework/src/framework/service/test.py', '/home/development/framework/framework/service/test.py']. CWD: /home/development/framework"]
 [INFO] Avvio Bootstrap dello strato applicativo (DSL)...
-[96m[13:55:00] [INFO    ] [system    ] tester.py:42         - 🧪 Avvio esecuzione suite di test...[0m
+[96m[14:30:30] [INFO    ] [system    ] tester.py:42         - 🧪 Avvio esecuzione suite di test...[0m
 src/framework/service/language.test.dsl
 🏃 Step 2: Esecuzione e Validazione...
-[13:55:01] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[13:55:01] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[13:55:01] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 3 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_fn_double (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_fn_double (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 3: dsl_stage_fn_double (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 3: dsl_stage_fn_double (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 3 stages (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'fn_sum', ( (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'fn_sum', ( (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'pick', ([' (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'pick', ([' (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'map', ('@  (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'map', ('@  (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'query', (' (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'query', (' (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Starting...)[0m
+[14:30:32] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[14:30:32] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[14:30:32] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 3 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_fn_double (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_fn_double (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 3: dsl_stage_fn_double (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 3: dsl_stage_fn_double (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 3 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'fn_sum', ( (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'fn_sum', ( (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'pick', ([' (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'pick', ([' (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'map', ('@  (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'map', ('@  (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'query', (' (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'query', (' (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Starting...)[0m
 *** CUSTOM PRINT ***: <module 'dynamic_framework_service_language_py' from 'framework/service/language.py'>
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Starting...)[0m
 *** CUSTOM PRINT ***: {
   "identifier": {
     "type": "string";
@@ -63,23 +63,23 @@ src/framework/service/language.test.dsl
     "type": "string";
   };
 }
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[13:55:01] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Starting...)[0m
-*** CUSTOM PRINT ***: <framework.service.context.Container object at 0x747567caf740>
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[14:30:32] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Starting...)[0m
+*** CUSTOM PRINT ***: <framework.service.context.Container object at 0x7a802d94f380>
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Starting...)[0m
 *** CUSTOM PRINT ***: None
-[90m[13:55:01] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_print (Completed)[0m
-[90m[13:55:01] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_print (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
 
 ========================================
 DSL Tests: 32
@@ -119,10 +119,118 @@ Testing 'mapped_value'... 🟢 OK
 ========================================
 RESULT: 🟢 PASSED (32/32)
 ========================================
+src/framework/service/floww.test.dsl
+🏃 Step 2: Esecuzione e Validazione...
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[14:30:32] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'foreach',  (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+Traceback (most recent call last):
+  File "/home/development/framework/src/framework/service/language.py", line 1499, in _execute_pipeline
+    return await flow.pipe(*stages, context=context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/flow.py", line 314, in pipe
+    outcome = await _execute_step_internal(stage_tuple, context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/flow.py", line 86, in _execute_step_internal
+    result = await fun(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1582, in pipe_stage
+    return await self._execute_pipe_call(op, prev, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1554, in _execute_pipe_call
+    result = await self._execute(name, p_args, k_args, ctx=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1310, in _execute
+    return await AsyncExecutor.await_if_needed(action())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 723, in await_if_needed
+    return await result if AsyncExecutor.is_coroutine(result) else result
+           ^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1426, in _execute_qualified
+    raise DSLRuntimeError(f"Attribute path '{name}' not found")
+framework.service.language.DSLRuntimeError: Attribute path 'module._dsl_switch' not found
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'foreach',  (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 3 stages (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'module._ds (Starting...)[0m
+[90m[14:30:32] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'module._ds (Completed)[0m
+[90m[14:30:32] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 3 stages (Completed)[0m
+[91m[14:30:32] [ERROR   ] [system    ] language.py:1501     - 💥 Expression evaluation error: Attribute path 'module._dsl_switch' not found[0m
+[91m[14:30:32] [ERROR   ] [system    ] tester.py:72         - ❌ Errore caricamento test src/framework/service/floww.test.dsl: Pipeline error: Attribute path 'module._dsl_switch' not found[0m
 src/framework/service/data_driven.test.dsl
 🏃 Step 2: Esecuzione e Validazione...
-[13:55:01] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[13:55:01] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
+[14:30:32] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[14:30:32] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
 
 ========================================
 DSL Tests: 1
@@ -136,14 +244,14 @@ src/framework/service/load.test.dsl
 🏃 Step 2: Esecuzione e Validazione...
 src/framework/service/factory.test.dsl
 🏃 Step 2: Esecuzione e Validazione...
-[13:55:02] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[13:55:02] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[90m[13:55:02] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:02] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:02] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:02] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_somma_dieci (Starting...)[0m
-[90m[13:55:02] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_somma_dieci (Completed)[0m
-[90m[13:55:02] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
+[14:30:33] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[14:30:33] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[90m[14:30:33] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:33] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:33] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:33] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_somma_dieci (Starting...)[0m
+[90m[14:30:33] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_somma_dieci (Completed)[0m
+[90m[14:30:33] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
 
 ========================================
 DSL Tests: 3
@@ -181,97 +289,159 @@ RESULT: 🟢 PASSED (16/16)
 ========================================
 src/framework/service/flow.test.dsl
 🏃 Step 2: Esecuzione e Validazione...
-[90m[13:55:03] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[13:55:03] [WARN    ] [system    ] language.py:601      - ⚠️ Unknown type: function[0m
-[90m[13:55:03] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'foreach',  (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   │   ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] │   ├── language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'foreach',  (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 2 stages (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 3 stages (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 1: <lambda> (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'module._ds (Starting...)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 2: dsl_stage_('CALL', 'module._ds (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 3: dsl_stage_print (Starting...)[0m
-*** CUSTOM PRINT ***: Sufficiente
-[90m[13:55:03] [TRACE   ] [system    ] ├── language.py:1525     - 👣 Step 3: dsl_stage_print (Completed)[0m
-[90m[13:55:03] [TRACE   ] [system    ] language.py:1525     - 🚀 Pipe with 3 stages (Completed)[0m
-
-========================================
-DSL Tests: 2
-========================================
-Testing 'match_score_label'... 🟢 OK
-Testing 'score_list'... 🟢 OK
-========================================
-RESULT: 🟢 PASSED (2/2)
-========================================
-src/framework/service/context.test.dsl
-🏃 Step 2: Esecuzione e Validazione...
-None
+[90m[14:30:34] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[14:30:34] [WARN    ] [system    ] language.py:541      - ⚠️ Unknown type: function[0m
+[90m[14:30:34] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'foreach',  (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 1: <lambda> (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   │   ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'match', ({ (Starting...)[0m
+[90m[14:30:34] [TRACE   ] [system    ] │   ├── language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] ├── language.py:1499     - 👣 Step 2: dsl_stage_('CALL', 'foreach',  (Completed)[0m
+[90m[14:30:34] [TRACE   ] [system    ] language.py:1499     - 🚀 Pipe with 2 stages (Completed)[0m
+Traceback (most recent call last):
+  File "/home/development/framework/public/main.py", line 14, in <module>
+    run_module = asyncio.run(main(sys.argv))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 674, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 641, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 1987, in _run_once
+    handle._run()
+  File "/usr/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/home/development/framework/public/main.py", line 11, in main
+    return await loader_instance.bootstrap()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/manager/loader.py", line 111, in bootstrap
+    gg = await ok.run()
+         ^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/manager/tester.py", line 67, in run
+    context = await visitor.run(parsed_data)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 882, in run
+    res = await self.visit(data)
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1004, in visit
+    return await self.PROCESSORS[node_type](node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1082, in _visit_dict
+    val = await self.visit(v, working_ctx)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1004, in visit
+    return await self.PROCESSORS[node_type](node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1154, in _visit_tuple
+    return await self._apply_handler(handler, node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1139, in _apply_handler
+    return await handler(node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1517, in evaluate_expression
+    return await self._execute_pipeline(stages, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1499, in _execute_pipeline
+    return await flow.pipe(*stages, context=context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/flow.py", line 314, in pipe
+    outcome = await _execute_step_internal(stage_tuple, context)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/flow.py", line 86, in _execute_step_internal
+    result = await fun(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1582, in pipe_stage
+    return await self._execute_pipe_call(op, prev, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1554, in _execute_pipe_call
+    result = await self._execute(name, p_args, k_args, ctx=context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1310, in _execute
+    return await AsyncExecutor.await_if_needed(action())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 723, in await_if_needed
+    return await result if AsyncExecutor.is_coroutine(result) else result
+           ^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1448, in _call_function
+    result = await AsyncExecutor.call_function(func, p_args, k_args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 730, in call_function
+    return await AsyncExecutor.await_if_needed(result)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 723, in await_if_needed
+    return await result if AsyncExecutor.is_coroutine(result) else result
+           ^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/flow.py", line 512, in foreach
+    outcome = await _execute_step_internal(action, context=context.copy())
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/flow.py", line 60, in _execute_step_internal
+    return await dsl_exec(fun, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1658, in execute_dsl_function
+    data = await res if asyncio.iscoroutine(res) else res
+           ^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1624, in _execute_function_body
+    result = await self.visit(body, ctx)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1004, in visit
+    return await self.PROCESSORS[node_type](node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1082, in _visit_dict
+    val = await self.visit(v, working_ctx)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1004, in visit
+    return await self.PROCESSORS[node_type](node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1154, in _visit_tuple
+    return await self._apply_handler(handler, node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1139, in _apply_handler
+    return await handler(node, ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1517, in evaluate_expression
+    return await self._execute_pipeline(stages, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/language.py", line 1499, in _execute_pipeline
+    return await flow.pipe(*stages, context=context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/development/framework/src/framework/service/flow.py", line 313, in pipe
+    with log_block(f"Step {stage_index}: {step_name}", level="TRACE", emoji="👣"):
+  File "/usr/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/home/development/framework/src/framework/service/diagnostic.py", line 456, in log_block
+    framework_log(level, f"{title} (Completed)", emoji=emoji, duration=duration, depth=4)
+  File "/home/development/framework/src/framework/service/diagnostic.py", line 474, in framework_log
+    frames = inspect.stack()
+             ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/inspect.py", line 1770, in stack
+    return getouterframes(sys._getframe(1), context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/inspect.py", line 1745, in getouterframes
+    traceback_info = getframeinfo(frame, context)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/inspect.py", line 1711, in getframeinfo
+    start = max(0, min(start, len(lines) - context))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 157, in _on_sigint
+    raise KeyboardInterrupt()
+KeyboardInterrupt
