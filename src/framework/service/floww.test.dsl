@@ -3,18 +3,9 @@ imports: {
 };
 
 exports: {
-    'asynchronous': 'asynchronous';
-    'synchronous': 'synchronous';
-    'format': 'format';
-    'transform': 'transform';
-    'convert': 'convert';
-    'route': 'route';
-    'normalize': 'normalize';
-    'put': 'put';
-    'get': 'get';
-    'work': 'work';
-    'step': 'step';
-    'pipe': 'pipe';
+    'assert': imports.flow.assertt;
+    'foreach': imports.flow.foreach;
+    'pass': imports.flow.passs;
     'catch':  imports.flow.catch;
     'serial': imports.flow.serial;
     'parallel': imports.flow.parallel;
@@ -23,6 +14,7 @@ exports: {
     'sentry': imports.flow.sentry;
     'switch': imports.flow.switch;
     'when': imports.flow.when;
+    'timeout': imports.flow.timeout;
 };
 
 type:scheme := {
@@ -37,7 +29,7 @@ type:scheme := {
     "outputs": {
         "type": "list";
         "default": [];
-        "_convert": list;
+        "convert": list;
     };
     "errors": {
         "type": "list";
@@ -61,25 +53,35 @@ function:error_function := (str:y),{
     x:y/2;
 },(str:x);
 
-any:catch_error := exports.catch(error_function,print,{inputs:["test"];}) |> print;
+scheme:catch_error := exports.catch(error_function,print,{inputs:["test"];}) |> print;
 
-any:foreach_test := exports.serial([1,2,3],print,{inputs:["test"];}) |> print;
+scheme:foreach_test := exports.serial([1,2,3],print,{inputs:["test"];}) |> print;
 
-any:parallel_test := exports.parallel(print,print,context:{inputs:["test"];}) |> print;
+scheme:parallel_test := exports.parallel(print,print,context:{inputs:["test"];}) |> print;
 
-any:pipeline_test := exports.pipeline(print,print,context:{inputs:["test"];}) |> print;
+scheme:pipeline_test := exports.pipeline(print,print,context:{inputs:["test"];}) |> print;
 
-any:retry_test := exports.retry(error_function,context:{inputs:["test"];}) |> print;
+scheme:retry_test := exports.retry(error_function,context:{inputs:["test"];}) |> print;
 
-any:sentry_test := exports.sentry("True",context:{inputs:["test"];}) |> print;
+scheme:sentry_test := exports.sentry("True",context:{inputs:["test"];}) |> print;
 
-any:switch_test := exports.switch({"True": print; "1 == 2": print;},context:{inputs:["test"];}) |> print;
+scheme:switch_test := exports.switch({"True": print; "1 == 2": print;},context:{inputs:["test"];}) |> print;
 
 scheme:when_test_success := exports.when("1 == 1", print,context:{inputs:["test"];});
 scheme:when_test_failure := exports.when("1 == 2", print,context:{inputs:["test"];});
 
+any:test_assert_failure := exports.assert("10 >= 50");
+any:test_assert_success := exports.assert("10 <= 50");
+
+any:pass_test := exports.pass(10);
+
 tuple:test_suite := (
+    { "target": "pass_test"; "output": pass_test |> get("outputs"); "description": "Pass flow"; },
     { "target": "match_score_label"; "output": "Sufficiente"; "description": "Match flow"; },
     { "target": "score_list"; "output": ["Attivo", "Attivo", "Attivo", "Attivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo"]; "description": "Match flow list"; },
+    { "target": "when_test_success"; "output": "Sufficiente"; "description": "Match flow"; },
+    { "target": "when_test_failure"; "output": "Sufficiente"; "description": "Match flow"; },
+    { "target": "test_assert_failure"; "output": "Sufficiente"; "description": "Match flow"; },
+    { "target": "test_assert_success"; "output": "Sufficiente"; "description": "Match flow"; },
 
 );

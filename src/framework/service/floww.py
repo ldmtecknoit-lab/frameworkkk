@@ -81,7 +81,7 @@ async def action(action, context=dict()) -> Any:
     fn, inputs, options = action
     #print(f"Action {type(fn)}:{fn} {type(inputs)}:{inputs} dict/{type(options)}:{options}")
     # It's a Python callable
-    print(f"Action {type(fn)}:{fn}")
+    #print(f"Action {type(fn)}:{fn}")
     if asyncio.iscoroutinefunction(fn):
         return await fn(*inputs)
     else:
@@ -110,6 +110,22 @@ def aggregate_results(dict_list):
 # ------------ Iterazione ------------
 
 @flow()
+async def foreach(data, step, context=dict()):
+    outputs = []
+    errors = []
+
+    for item in data:
+        result = await action(step, context | {'inputs': (item,)})
+        outputs.append(result.get('outputs'))
+        errors.extend(result.get('errors', []))
+
+    return {
+        'outputs': outputs,
+        'errors': errors,
+        'success': all(e is None for e in errors)
+    }
+
+@flow()
 async def serial(data, act,context=dict()):
     outputs = []
     for item in data:
@@ -128,6 +144,12 @@ async def parallel(*acts, **options):
     return aggregate_results(results)
 
 # ------------ Decisione ------------
+
+@flow()
+async def assertt(condition, context=dict()):
+    if not eval(condition, context):
+        raise AssertionError(f"Assertion failed: {condition}")
+    return condition
 
 @flow()
 async def sentry(condition, context=dict()):
@@ -162,6 +184,10 @@ async def switch(cases: dict, context=None):
     return await when('true', cases['true'], context)
 
 # ------------ Sequenza ------------
+
+@flow()
+async def passs(value=None, context=dict()):
+    return value
 
 @flow()
 async def pipeline(*acts, context=None):
@@ -226,7 +252,7 @@ async def catch(act, catch_act,context=dict()):
     if n1.get('success',False):
         return n1
     
-    recovery = await action(catch_step, context)
+    recovery = await action(catch_act, context)
     
     # Uniamo gli errori precedenti a quelli nuovi (se presenti)
     all_errors = n1.get('errors', []) + recovery.get('errors', [])

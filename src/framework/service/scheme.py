@@ -31,6 +31,8 @@ mappa = {
 
 async def convert(target, output,input=''):
     try:
+        if type(target) == output:
+            return target
         return mappa[(type(target),output,input)](target)
     except KeyError:
         raise ValueError(f"Conversione non supportata: {type(target)} -> {type(output)}:{output} da {input}")
@@ -81,12 +83,6 @@ async def format(target ,**constants):
         raise ValueError(f"Errore formattazione: {e}")
 
 async def normalize(value, schema, mode='full'):
-    def to_list(value):
-        if value is None:
-            return []
-        if isinstance(value, list):
-            return value
-        return [value]
     """
     Convalida, popola, trasforma e struttura i dati utilizzando uno schema Cerberus.
     """
@@ -115,21 +111,16 @@ async def normalize(value, schema, mode='full'):
             elif func_name == 'time_now_utc':
                 if field_name not in processed_value:
                     pass
-        if isinstance(field_rules, dict) and "_convert" in field_rules:
-            convert_name = field_rules["_convert"]
-            print("convert_name",convert_name)
-            print("processed_value",value)
+        if isinstance(field_rules, dict) and "convert" in field_rules:
+            convert_name = field_rules["convert"]
 
             if field_name in processed_value:
                 processed_value[field_name] = await convert(value, convert_name)
 
-            schema[field_name].pop("_convert")
+            schema[field_name].pop("convert")
 
     # Cerberus Validation
     v = Validator(schema,allow_unknown=True)
-    v.coerce = {
-        "to_list": to_list
-    }
 
     if not v.validate(processed_value):
         framework_log("WARNING", f"Errore di validazione: {v.errors}", emoji="⚠️", data=processed_value)
