@@ -45,8 +45,9 @@ def flow(custom_filename: str = __file__, app_context = None, **constants):
                         'inputs': args,
                         'outputs': result,
                         'errors': [],
-                        'time': end_time - start_time
+                        'time': str(end_time - start_time)
                     }
+                    #print(result,"<-----------result")
                     return merge_foreach_structure(ok)
                 except Exception as e:
                     end_time = time.perf_counter()
@@ -56,7 +57,7 @@ def flow(custom_filename: str = __file__, app_context = None, **constants):
                         'inputs': args,
                         'outputs': None,
                         'errors': [flow.__name__+":"+str(e)],
-                        'time': end_time - start_time
+                        'time': str(end_time - start_time)
                     }
                 finally:
                     pass
@@ -139,7 +140,6 @@ async def sentry(condition, context=dict()):
 async def when(condition, step, context=dict()):
     # Se la condizione (funzione o booleano) è vera, esegue lo step
     should_run = await sentry(condition, context)
-    
     if should_run.get('success', False):
         return await action(step, context)
     else:

@@ -37,6 +37,7 @@ type:scheme := {
     "outputs": {
         "type": "list";
         "default": [];
+        "_convert": list;
     };
     "errors": {
         "type": "list";
@@ -48,7 +49,7 @@ type:scheme := {
     };
     "time": {
         "type": "string";
-        "default": "";
+        "default": "0";
     };
     "worker": {
         "type": "string";
@@ -74,9 +75,11 @@ any:sentry_test := exports.sentry("True",context:{inputs:["test"];}) |> print;
 
 any:switch_test := exports.switch({"True": print; "1 == 2": print;},context:{inputs:["test"];}) |> print;
 
-any:when_test := exports.when("1 == 2", print,context:{inputs:["test"];}) |> print;
+scheme:when_test_success := exports.when("1 == 1", print,context:{inputs:["test"];});
+scheme:when_test_failure := exports.when("1 == 2", print,context:{inputs:["test"];});
 
 tuple:test_suite := (
     { "target": "match_score_label"; "output": "Sufficiente"; "description": "Match flow"; },
     { "target": "score_list"; "output": ["Attivo", "Attivo", "Attivo", "Attivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo"]; "description": "Match flow list"; },
+
 );

@@ -25,13 +25,15 @@ mappa = {
     (int,str,''): lambda v: str(v) if isinstance(v, int) else v if isinstance(v, str) else '',
     (str,bool,''): lambda v: True if v.lower() == 'true' else False,
     (bool,str,''): lambda v: str(v) if isinstance(v, bool) else v if isinstance(v, str) else '',
+    (str,list,''): lambda v: [v],
+    (type(None),list,''): lambda v: [],
 }
 
 async def convert(target, output,input=''):
     try:
         return mappa[(type(target),output,input)](target)
     except KeyError:
-        raise ValueError(f"Conversione non supportata: {type(target)} -> {type(output)} da {input}")
+        raise ValueError(f"Conversione non supportata: {type(target)} -> {type(output)}:{output} da {input}")
     except Exception as e:
         raise ValueError(f"Errore conversione: {e}")
 
@@ -79,6 +81,12 @@ async def format(target ,**constants):
         raise ValueError(f"Errore formattazione: {e}")
 
 async def normalize(value, schema, mode='full'):
+    def to_list(value):
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        return [value]
     """
     Convalida, popola, trasforma e struttura i dati utilizzando uno schema Cerberus.
     """
@@ -91,13 +99,14 @@ async def normalize(value, schema, mode='full'):
 
     # 1. Popolamento e Trasformazione Iniziale
     processed_value = value
-    for key in schema.copy():
+    '''for key in schema.copy():
         item = schema[key]
         for field_name, field_rules in item.copy().items():
             if field_name.startswith('_'):
-                schema.get(key).pop(field_name)
+                schema.get(key).pop(field_name)'''
 
     for field_name, field_rules in schema.copy().items():
+        value = processed_value.get(field_name)
         if isinstance(field_rules, dict) and 'function' in field_rules:
             func_name = field_rules['function']
             if func_name == 'generate_identifier':
@@ -106,9 +115,21 @@ async def normalize(value, schema, mode='full'):
             elif func_name == 'time_now_utc':
                 if field_name not in processed_value:
                     pass
+        if isinstance(field_rules, dict) and "_convert" in field_rules:
+            convert_name = field_rules["_convert"]
+            print("convert_name",convert_name)
+            print("processed_value",value)
+
+            if field_name in processed_value:
+                processed_value[field_name] = await convert(value, convert_name)
+
+            schema[field_name].pop("_convert")
 
     # Cerberus Validation
     v = Validator(schema,allow_unknown=True)
+    v.coerce = {
+        "to_list": to_list
+    }
 
     if not v.validate(processed_value):
         framework_log("WARNING", f"Errore di validazione: {v.errors}", emoji="⚠️", data=processed_value)

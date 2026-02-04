@@ -5,6 +5,7 @@ A robust, maintainable DSL interpreter with enhanced error handling,
 performance optimizations, and cleaner architecture.
 """
 import types
+import copy
 from typing import Dict, Any, Optional, List, Callable, Union, Tuple, Set
 import asyncio
 import operator
@@ -499,6 +500,8 @@ OPS_MAP = {
 class TypeValidator:
     """Enhanced type validation with better error reporting"""
     
+    CUSTOM_TYPES = {}
+    
     TYPE_MAP = {
         'type':dict,'function':Union[tuple,types.FunctionType,types.MethodType],
         'int': int, 'integer': int, 'i8': int, 'i16': int, 'i32': int, 'i64': int, 'i128': int,
@@ -533,27 +536,73 @@ class TypeValidator:
         """Check if value is instance of type"""
         return isinstance(value, type_class)
     
+    @classmethod
+    def register_custom_type(cls, name: str, schema: Dict):
+        """Register a new custom type schema"""
+        cls.CUSTOM_TYPES[name] = schema
+
+    CERBERUS_TYPE_MAP = {
+        'int': 'integer', 'i8': 'integer', 'i16': 'integer', 'i32': 'integer', 'i64': 'integer', 'i128': 'integer',
+        'str': 'string', 'text': 'string',
+        'bool': 'boolean',
+        'array': 'list',
+        'f8': 'float', 'f16': 'float', 'f32': 'float', 'f64': 'float', 'f128': 'float',
+        'any': 'string' 
+    }
+
     @staticmethod
-    def validate(value, type_name: str, var_name: str):
+    def _to_cerberus_schema(schema: Dict) -> Dict:
+        """Convert DSL schema to Cerberus compatible schema"""
+        new_schema = {}
+        for field, rules in schema.items():
+            new_rules = rules.copy()
+            if 'type' in new_rules:
+                dsl_type = new_rules['type']
+                if dsl_type in TypeValidator.CERBERUS_TYPE_MAP:
+                    new_rules['type'] = TypeValidator.CERBERUS_TYPE_MAP[dsl_type]
+                elif dsl_type in ['integer', 'string', 'boolean', 'dict', 'list', 'float', 'number']:
+                    pass 
+                elif dsl_type == 'any':
+                     new_rules.pop('type', None)
+            
+            new_schema[field] = new_rules
+        return new_schema
+
+    @staticmethod
+    async def _validate_custom(value, type_name, var_name):
+        """Validate against custom schema and apply defaults using normalize"""
+        schema = TypeValidator.CUSTOM_TYPES[type_name]
+        cerberus_schema = TypeValidator._to_cerberus_schema(schema)
+        try:
+            return await normalize(value, cerberus_schema)
+        except Exception as e:
+            raise DSLTypeError(f"Type error in '{var_name}': expected {type_name}. Details: {str(e)}")
+
+    @staticmethod
+    async def validate(value, type_name: str, var_name: str):
         """Validate value against type with detailed error"""
+        if type_name in TypeValidator.CUSTOM_TYPES:
+            return await TypeValidator._validate_custom(value, type_name, var_name)
+
         type_class = TypeValidator.get_type_class(type_name)
         
         if type_class is None:
             framework_log("WARN", f"Unknown type: {type_name}", emoji="⚠️")
-            return
+            return value
         
         if TypeValidator.is_any_type(type_class):
-            return
+            return value
         
         # Forgive float->int for whole numbers
         if TypeValidator.is_int_type(type_class) and TypeValidator.is_whole_number(value):
-            return
+            return int(value)
         
         if not TypeValidator.check_instance(value, type_class):
             raise DSLTypeError(
                 f"Type error in '{var_name}': expected {type_name}, "
                 f"got {type(value).__name__} with value '{value}'"
             )
+        return value
 
 # ============================================================================
 # WILDCARD MATCHER (Unchanged but with type hints)
@@ -1046,12 +1095,13 @@ class DSLVisitor:
             return NodeExtractor.get_typed_name(key)
         return str(key)
     
-    def _validate_typed_key(self, key, value):
+    async def _validate_typed_key(self, key, value):
         """Validate typed key"""
         if NodeTypeChecker.is_typed(key):
             type_name = NodeExtractor.get_typed_type(key)
             var_name = NodeExtractor.get_typed_name(key)
-            TypeValidator.validate(value, type_name, var_name)
+            return await TypeValidator.validate(value, type_name, var_name)
+        return value
     
     def _update_context_with_value(self, ctx: Dict, key: str, value):
         """Update context with value"""
@@ -1082,8 +1132,11 @@ class DSLVisitor:
             val = await self.visit(v, working_ctx)
             
             # Step 2: Validate & Extract Name (Data-Driven)
-            self._validate_typed_key(k, val)
+            val = await self._validate_typed_key(k, val)
             key_name = self._extract_key_name(k)
+
+            if NodeTypeChecker.is_typed(k) and NodeExtractor.get_typed_type(k) == 'type':
+                 TypeValidator.register_custom_type(key_name, val)
             
             # Step 3: Bind & Update
             res[key_name] = val

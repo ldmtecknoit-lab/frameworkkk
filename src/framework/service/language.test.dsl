@@ -164,6 +164,42 @@
 
     (mapped_value: 100);
 
+    type:scheme := {
+        "action": {
+            "type": "string";
+            "default": "unknown";
+        };
+        "inputs": {
+            "type": "list";
+            "default": [];
+        };
+        "outputs": {
+            "type": "list";
+            "default": [];
+        };
+        "errors": {
+            "type": "list";
+            "default": [];
+        };
+        "success": {
+            "type": "boolean";
+            "default": false;
+        };
+        "time": {
+            "type": "string";
+            "default": "";
+        };
+        "worker": {
+            "type": "string";
+            "default": "unknown";
+        };
+    };
+
+    scheme:test_custom_type := {
+        "action": "testing";
+        "worker": "myself";
+    };
+
 
     # ============================================================
     # 12. TEST SUITE
@@ -212,6 +248,7 @@
         #{ "target": "Container"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
         #{ "target": "sus"; "output": { "a": 1; "b": 2; }; "description": "Dot notation indirect"; },
 
+        { "target": "test_custom_type"; "output": { "action": "testing"; "worker": "myself"; "inputs": []; "outputs": []; "errors": []; "success": False; "time": ""; }; "description": "Custom Type defaults"; },
         { "target": "mapped_value"; "output": 100; "description": "Mapping tra parentesi"; }
     ];
 }
