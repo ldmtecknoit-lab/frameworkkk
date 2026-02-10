@@ -1,4 +1,15 @@
 {
+
+    #Funzionalità mantenute al 100%:
+    #✅ Parsing completo
+    #✅ Type validation
+    #✅ Function calls (DSL e Python)
+    #✅ Pipe expressions
+    #✅ Triggers (cron ed event)
+    #✅ Include directive
+    #✅ Custom types
+    #✅ Dotted paths
+    #✅ Operations
     # ============================================================
     # 1. TIPI BASE
     # ============================================================

@@ -101,7 +101,7 @@ class loader:
         Bootstraps il framework inizializzando prima i servizi e poi eseguendo bootstrap.dsl.
         """
         # 1. Inizializzazione servizi core ordinata
-        await self._initialize_services()
+        #await self._initialize_services()
 
         print(self.services,"<----")
         

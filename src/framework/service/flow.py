@@ -1,701 +1,307 @@
 import uuid
-import sys
 import asyncio
 import functools
 import inspect
-import json
 import time
 from typing import Any, Callable, Dict, List, Optional
 from framework.service.context import container
 from framework.service.diagnostic import framework_log, log_block, _load_resource, buffered_log, analyze_exception, _get_system_info
-from framework.service.scheme import convert, get, format, normalize, transform, put, route, mappa
-from framework.service.telemetry import (
-    MultiSpanContext, MockSpanContext, 
-    get_transaction_id, set_transaction_id, get_requirements,
-    _transaction_id, _requirements, _setup_transaction_context
-)
+import framework.service.scheme as scheme
 
-async def _execute_step_internal(action_step, context=dict()) -> Any:
-    """
-    Esegue un'azione (funzione, args, kwargs) fornita da 'step', 
-    senza il contesto completo del pipe.
-    """
+def merge_foreach_structure(data):
+    # Verifichiamo se l'output contiene la struttura del figlio
+    child = data.get('outputs')
+    
+    if isinstance(child, dict) and 'outputs' in child:
+        # 1. 'outputs' del padre diventa la lista piatta dei risultati del figlio
+        new_outputs = child.get('outputs', [])
         
-    # Handle literal values (strings, numbers, etc.) - just return them
-    if not callable(action_step) and not isinstance(action_step, tuple):
-        return {"success": True, "data": action_step, "errors": []}
-    
-    if callable(action_step):
-        action_step = (action_step, (), {})
-
-    fun = action_step[0]
-    args = action_step[1] if len(action_step) > 1 else ()
-    kwargs = action_step[2] if len(action_step) > 2 else {}
-    if isinstance(fun, str):
-        #Funzione da stringa (context lookup)
-        fun = get({'@':context}, fun)
-    
-    aaa = []
-    for arg in args:
-        if isinstance(arg, str) and arg.strip().startswith("@"):
-            aaa.append(get({'@':context}, arg))
-        else:
-            aaa.append(arg)
-    args = tuple(aaa)
-
-    kkk = {}
-    for k, v in kwargs.items():
-        if isinstance(v, str) and v.strip().startswith("@"):
-            kkk[k] = get({'@':context}, v)
-        else:
-            kkk[k] = v
-    kwargs = kkk
-
-    # Support for DSL Functions (macro) defined as (params, body, returns)
-    is_dsl_func = isinstance(fun, (list, tuple)) and len(fun) == 3 and isinstance(fun[1], dict)
-    
-    if is_dsl_func:
-        dsl_exec = context.get('__execute_dsl_function__')
-        if dsl_exec:
-            return await dsl_exec(fun, args, kwargs)
-        raise TypeError(f"Rilevata funzione DSL ma nessun esecutore trovato nel contesto. Fun: {fun}")
-
-    if not callable(fun):
-        # Resolve from context if it's a variable name
-        fun_resolved = get({'@':context}, fun)
-        if fun_resolved and callable(fun_resolved):
-            fun = fun_resolved
-        elif isinstance(fun_resolved, (list, tuple)) and len(fun_resolved) == 3 and isinstance(fun_resolved[1], dict):
-            # The name resolved to a DSL function
-            dsl_exec = context.get('__execute_dsl_function__')
-            if dsl_exec:
-                return await dsl_exec(fun_resolved, args, kwargs)
-            raise TypeError(f"Nome '{fun}' risolto in funzione DSL ma nessun esecutore nel contesto.")
-        else:
-            step_repr = str(action_step)[:100]
-            raise TypeError(f"L'azione '{fun}' non è callable e non è una funzione DSL valida. Action: {step_repr}")
-
-    # It's a Python callable
-    if asyncio.iscoroutinefunction(fun):
-        # Inspect the function to see if it accepts 'context'
-        sig = inspect.signature(fun)
-        if 'context' in sig.parameters:
-            kwargs['context'] = context
-        elif 'ctx' in sig.parameters:
-            kwargs['ctx'] = context
-        result = await fun(*args, **kwargs)
-    else:
-        # Inspect the function to see if it accepts 'context'
-        sig = inspect.signature(fun)
-        if 'context' in sig.parameters:
-            kwargs['context'] = context
-        elif 'ctx' in sig.parameters:
-            kwargs['ctx'] = context
-        result = fun(*args, **kwargs)
-        if asyncio.iscoroutine(result):
-            result = await result
-    
-    return result
-
-    # Auto-wrapping in Transaction se non lo è già
-    if isinstance(result, dict) and 'success' in result and ('data' in result or 'errors' in result):
-        return result
-    
-    return {"success": True, "data": result, "errors": []}
-
-def _prepare_action_context(custom_filename, **constants):
-    """Prepara requirements, manager_names e schema path per il decoratore."""
-    known_params = {'managers', 'outputs', 'inputs'}
-    requirements = {k: v for k, v in constants.items() if k not in known_params}
-    
-    manager_names = list(constants.get('managers', []))
-    
-    output_schema_path = 'framework/scheme/transaction.json'
-    if 'outputs' in constants and constants['outputs']:
-         output_schema_path = constants['outputs']
-         
-    return requirements, manager_names, output_schema_path
-
-def _execute_wrapper_sync(function, args, kwargs, manager_names, current_tx_id):
-    """Esegue la funzione wrappata (sincrona) e arricchisce il risultato."""
-    inject = []
-    for m in manager_names:
-        if hasattr(container, m):
-            inject.append(getattr(container, m)())
-        else:
-            framework_log("WARNING", f"Manager '{m}' richiesto da {function.__name__} non trovato.")
-            
-    args_inject = list(args) + inject
-    
-    # Esecuzione diretta
-    try:
-        # Nota: qui non usiamo _execute_step_internal perché è async, 
-        # ma ne replichiamo la logica di iniezione contesto se necessario
-        sig = inspect.signature(function)
-        if 'context' in sig.parameters and 'context' not in kwargs:
-             kwargs['context'] = {}
-             
-        result = function(*args_inject, **kwargs)
+        # 2. 'errors' del padre riceve anche gli errori del figlio (appiattiti)
+        new_errors = data.get('errors', []) + child.get('errors', [])
         
-        # Auto-wrapping
-        if isinstance(result, dict) and 'success' in result and ('data' in result or 'errors' in result):
-            transaction = result
-        else:
-            transaction = {"success": True, "data": result, "errors": []}
-    except Exception as e:
-        raise e
-
-    transaction['identifier'] = current_tx_id
-    return transaction
-
-def _normalize_wrapper_sync(transaction, output_schema_path, wrapper_func, kwargs, current_tx_id):
-    """Gestisce la normalizzazione sincrona (limitata o via helper)."""
-    # Se lo schema è un path, in sincrono è complesso caricarlo async. 
-    # Per ora gestiamo solo se è già un dict o lo saltiamo nel wrapper sincrono se non strettamente necessario.
-    # In una versione più avanzata, potremmo pre-caricare gli schemi al bootstrap.
-    if isinstance(output_schema_path, dict):
-        # Implementazione ipotetica di normalize_sync
-        pass
-    
-    return transaction
-
-async def _execute_wrapper(function, args, kwargs, manager_names, current_tx_id):
-    """Esegue la funzione wrappata e arricchisce il risultato."""
-    # Resolve managers at runtime. Wait if they are missing
-    inject = []
-    for m in manager_names:
-        attempts = 0
-        while not hasattr(container, m) and attempts < 10:
-            await asyncio.sleep(0.1)
-            attempts += 1
+        # 3. 'success' è True solo se entrambi sono True
+        new_success = data.get('success', False) and child.get('success', False)
         
-        if hasattr(container, m):
-            inject.append(getattr(container, m)())
-        else:
-            framework_log("WARNING", f"Manager '{m}' richiesto da {function.__name__} non trovato nel container.")
-            
-    args_inject = list(args) + inject
-    step_tuple = (function, tuple(args_inject), kwargs)
-    
-    transaction = await _execute_step_internal(step_tuple)
-    
-    transaction['identifier'] = current_tx_id
-    try:
-        sys_info = _get_system_info()
-        transaction['worker'] = f"{sys_info.get('hostname', 'unknown')}:{sys_info.get('process_id', '?')}"
-    except Exception:
-        pass
+        # Aggiorniamo il dizionario originale mantenendo le chiavi intatte
+        data['success'] = new_success
+        data['outputs'] = new_outputs
+        data['errors'] = new_errors
         
-    return transaction
-
-async def _normalize_wrapper(transaction, output_schema_path, wrapper_func, kwargs, current_tx_id):
-    """Gestisce il caricamento dello schema e la normalizzazione."""
-    target_schema = output_schema_path
-    
-    if isinstance(target_schema, str):
-        try:
-            schema_content = await _load_resource(path=target_schema)
-            target_schema = json.loads(schema_content)
-        except Exception as e:
-            buffered_log("ERROR", f"Errore caricamento schema da {output_schema_path}: {e}")
-            target_schema = None
-
-    if target_schema and isinstance(target_schema, dict):
-        try:
-            meta = {
-                "action": wrapper_func.__name__,
-                "parameters": kwargs,
-                "identifier": current_tx_id,
-                "worker": transaction.get('worker', 'unknown')
-            }
-            #return await normalize(meta | transaction, target_schema)
-            return meta | transaction
-        except Exception as e:
-            buffered_log("ERROR", f"Errore normalizzazione output in {wrapper_func.__name__}: {e}")
-            return transaction
-    
-    return transaction
-
-def _handle_wrapper_error(e, function, custom_filename, current_tx_id):
-    """Gestisce le eccezioni e genera il report di errore."""
-    error_details = str(e)
-    try:
-        source = inspect.getsource(function) if hasattr(function, '__code__') else ""
-        report = analyze_exception(source, custom_filename)
-        if report and 'EXCEPTION_DETAILS' in report:
-            error_details = report['EXCEPTION_DETAILS']
-    except Exception:
-        pass 
-
-    if not hasattr(container, 'messenger'):
-        framework_log("ERROR", f"Eccezione in {function.__name__}: {e}", emoji="❌", exception=e)
-
-    return {
-        "success": False, 
-        "errors": [error_details],
-        "data": None,
-        "action": function.__name__,
-        "identifier": current_tx_id
-    }
+    return data
 
 def action(custom_filename: str = __file__, app_context = None, **constants):
-    """
-    Decoratore polimorfico che fonde logica sincrona e asincrona.
-    Gestisce iniezione dipendenze, telemetria, contratti e transazionalità.
-    """
-    requirements, manager_names, output_schema_path = _prepare_action_context(custom_filename, **constants)
-
+    
     def decorator(function):
         if asyncio.iscoroutinefunction(function):
             @functools.wraps(function)
             async def wrapper(*args, **kwargs):
-                wrapper._is_decorated = True
-                current_tx_id, tx_token = _setup_transaction_context()
-                req_token = _requirements.set(requirements)
+                start_time = time.perf_counter()
                 try:
-                    telemetry_list = getattr(container, 'telemetry', lambda: [])()
-                    span_name = f"async:{function.__name__}"
-                    with MultiSpanContext(telemetry_list, span_name):
-                        transaction = await _execute_wrapper(function, args, kwargs, manager_names, current_tx_id)
-                        return await _normalize_wrapper(transaction, output_schema_path, wrapper, kwargs, current_tx_id)
+                    result = await function(*args, **kwargs)
+                    end_time = time.perf_counter()
+                    ok = {
+                        'action': function.__name__,
+                        'success': True,
+                        'inputs': args,
+                        'outputs': result,
+                        'errors': [],
+                        'time': str(end_time - start_time)
+                    }
+                    #print(result,"<-----------result")
+                    return merge_foreach_structure(ok)
                 except Exception as e:
-                    return _handle_wrapper_error(e, function, custom_filename, current_tx_id)
+                    end_time = time.perf_counter()
+                    return {
+                        'action': function.__name__,
+                        'success': False,
+                        'inputs': args,
+                        'outputs': None,
+                        'errors': [str(e)],
+                        'time': str(end_time - start_time)
+                    }
                 finally:
-                    _requirements.reset(req_token)
-                    if tx_token: _transaction_id.reset(tx_token)
+                    pass
             return wrapper
         else:
             @functools.wraps(function)
             def wrapper(*args, **kwargs):
-                wrapper._is_decorated = True
-                current_tx_id, tx_token = _setup_transaction_context()
-                req_token = _requirements.set(requirements)
                 try:
-                    telemetry_list = getattr(container, 'telemetry', lambda: [])()
-                    span_name = f"sync:{function.__name__}"
-                    with MultiSpanContext(telemetry_list, span_name):
-                        transaction = _execute_wrapper_sync(function, args, kwargs, manager_names, current_tx_id)
-                        # Normalizzazione sincrona (limitata se richiede I/O async)
-                        return transaction
+                    return function(*args, **kwargs)
                 except Exception as e:
-                    return _handle_wrapper_error(e, function, custom_filename, current_tx_id)
+                    return e
                 finally:
-                    _requirements.reset(req_token)
-                    if tx_token: _transaction_id.reset(tx_token)
+                    pass
             return wrapper
-    return decorator
+    return decorator    
 
-# Alias per compatibilità con il codice esistente
-asynchronous = action
-synchronous = action
 
-def step(func, *args, **kwargs):
-    return (func, args, kwargs)
+def step(fn,*args, **kwargs) -> tuple: return (fn,args,kwargs)
 
-async def pipe(*stages, context=dict()):
-    """
-    Orchestra un flusso dichiarativo, chiamando le funzioni in sequenza.
-    """
-    context |= {'outputs': []}
-    stage_index = 0
-    final_output = None
+
+async def act(step, context=dict()):
     
-    with log_block(f"Pipe with {len(stages)} stages", level="TRACE", emoji="🚀"):
-        # --- OpenTelemetry Hook ---
-        telemetry_list = getattr(container, 'telemetry', lambda: [])()
-        
-        with MultiSpanContext(telemetry_list, "pipe_execution"):
-            for stage in stages:
-                stage_index += 1
-                stage_tuple = stage if isinstance(stage, (tuple, list)) else (stage, (), {})
-                step_name = getattr(stage_tuple[0], '__name__', str(stage_tuple[0]))
-                
-                with log_block(f"Step {stage_index}: {step_name}", level="TRACE", emoji="👣"):
-                    outcome = await _execute_step_internal(stage_tuple, context)
-                
-                if isinstance(outcome, dict) and outcome.get('success') is True and 'data' in outcome:
-                    data_to_pass = outcome['data']
-                else:
-                    data_to_pass = outcome
-                
-                final_output = data_to_pass
-                context['outputs'].append(data_to_pass)
-            
-    return final_output
 
-async def safe(func: Callable, *args, **kwargs) -> Dict[str, Any]:
+    function, inputs, schemes = step
+    nn = []
+    gg = {'@':context}
+    if hasattr(inputs,'__iter__'):
+        for i,x in enumerate(inputs):
+            if isinstance(x,str) and x.startswith('@'):
+                
+                ss = scheme.get(gg,x)
+                nn.append(ss)
+            else:
+                nn.append(inputs[i])
+        inputs = tuple(nn)
+
+
+    start_time = time.perf_counter()
     try:
-        if asyncio.iscoroutinefunction(func):
-            data = await func(*args, **kwargs)
+        
+        if asyncio.iscoroutinefunction(function):
+            result = await function(*inputs,**schemes|context)
         else:
-            data = func(*args, **kwargs)
-            
-        if isinstance(data, dict) and 'success' in data and 'data' in data:
-            return data
-            
-        return {"success": True, "data": data, "errors": []}
+            result = function(*inputs,**schemes|context)
+        end_time = time.perf_counter()
+
+        ok = {
+            'action': function.__name__,
+            'success': True,
+            'inputs': inputs,
+            'outputs': result,
+            'errors': [],
+            'time': str(end_time - start_time)
+        }
+        return merge_foreach_structure(ok)
     except Exception as e:
+        end_time = time.perf_counter()
         return {
-            "success": False, 
-            "data": None, 
-            "errors": [{"type": type(e).__name__, "message": str(e)}]
+            'action': function.__name__,
+            'success': False,
+            'inputs': inputs,
+            'outputs': None,
+            'errors': [str(e)],
+            #'time': str(end_time - start_time)
         }
 
-async def branch(on_success: Callable, on_failure: Callable, context=dict()):
-    """
-    Instrada il flusso basandosi sul campo 'ok' del risultato (result.json).
-    """
-    outcome = context.get('outputs', [None])[-1]
-    
-    with log_block("Branching", level="TRACE", emoji="📂"):
-        if isinstance(outcome, dict) and outcome.get('success') is True:
-            return await _execute_step_internal(on_success, context)
-        else:
-            return await _execute_step_internal(on_failure, context)
+from collections import defaultdict
 
-async def guard(condition: str, context=dict()) -> Optional[Dict[str, Any]]:
-    import mistql
+def aggregate_results(dict_list):
+    aggregated = defaultdict(list)
     
-    try:
-        safe_context = context
-        if isinstance(context, dict):
-            safe_context = context.copy()
-            if 'outputs' in safe_context:
-                safe_outputs = []
-                for out in safe_context['outputs']:
-                    if isinstance(out, (dict, list, str, int, float, bool, type(None))):
-                        safe_outputs.append(out)
-                    else:
-                        safe_outputs.append(str(out))
-                safe_context['outputs'] = safe_outputs
+    for entry in dict_list:
+        for key, value in entry.items():
+            aggregated[key].append(value)
             
-            for k, v in safe_context.items():
-                if not isinstance(v, (dict, list, str, int, float, bool, type(None))):
-                    safe_context[k] = str(v)
-
-        if type(context) not in [str, int, float, bool,dict,list]:
-            safe_context = str(context)
+    # Opzionale: Pulizia dei dati (es. se 'action' è sempre uguale, prendi solo il primo)
+    final_data = dict(aggregated)
+    
+    # Esempio di post-elaborazione: 
+    # Trasforma in valore singolo se tutti gli elementi sono identici (come 'action')
+    for key in final_data:
+        if all(x == final_data[key][0] for x in final_data[key]):
+            final_data[key] = final_data[key][0]
             
-        result = mistql.query(condition, safe_context)
-        
-        if result:
-            return {
-                "success": True, 
-                "data": context, 
-                "errors": []
-            }
-        else:
-            return {
-                "success": False, 
-                "data": context, 
-                "errors": [{
-                    "condition": condition,
-                    "evaluated_result": result,
-                    "context": safe_context
-                }]
-            }
-    except Exception as e:
-        return {
-            "success": False,
-            "data": None,
-            "errors": [{
-                "message": f"Errore nella valutazione MistQL: {str(e)}",
-                "condition": condition,
-                "exception": type(e).__name__
-            }]
-        }
+    return final_data
 
-async def fallback(primary_func, secondary_func, context=dict()) -> Dict[str, Any]:
-    transaction = await _execute_step_internal(primary_func,context)
-    if transaction['success']:
-        return transaction
-    transaction = await _execute_step_internal(secondary_func,context)  
-    return transaction
+# ------------ Iterazione ------------
 
-async def switch(cases, context=dict()):
-    case_list = []
-    if isinstance(cases, dict):
-        case_list = list(cases.items())
-    else:
-        case_list = cases
+@action()
+async def foreach(data, step, context=dict()):
+    outputs = []
+    errors = []
 
-    for condition, action_step in case_list:
-        guard_result = await guard(condition, context)
-        success = guard_result.get("success", False)
-        if success:
-            return await _execute_step_internal(action_step,context)
+    for item in data:
+        result = await act(step, context | {'inputs': (item,)})
+        outputs.append(result.get('outputs'))
+        errors.extend(result.get('errors', []))
 
-async def work(workflow, context=dict()):
-    current_tx_id, tx_token = _setup_transaction_context()
-    if context is None:
-        context = {}
-    if 'identifier' not in context:
-        context['identifier'] = current_tx_id
-
-    try:
-        authorized = False
-        defender_service = None
-        if hasattr(container, 'defender'):
-            try:
-                defender_service = container.defender()
-            except Exception:
-                defender_service = None
-        
-        if defender_service:
-            wf_name = getattr(workflow, '__name__', str(workflow))
-            check_ctx = context | {'workflow_name': wf_name, 'transaction_id': current_tx_id}
-            authorized = await defender_service.check_permission(**check_ctx)
-            if not authorized:
-                framework_log("WARNING", f"Accesso negato da Defender per {wf_name}", emoji="⛔", data=check_ctx)
-        else:
-            is_system = context.get('system', False) or context.get('user') == 'system'
-            wf_name = getattr(workflow, '__name__', str(workflow))
-            if is_system or 'bootstrap' in wf_name:
-                authorized = True
-                framework_log("DEBUG", f"Defender offline: Accesso System concesso per {wf_name}.", emoji="🛡️")
-            else:
-                authorized = False
-                framework_log("ERROR", f"Defender offline: Accesso User negato per {wf_name}.", emoji="⛔")
-
-        if not authorized:
-             raise PermissionError("Accesso negato: Permessi insufficienti o Defender non disponibile.")
-        
-        return await _execute_step_internal(workflow, context)
-
-    except Exception as e:
-        framework_log("ERROR", f"Errore avvio workflow: {e}", emoji="❌")
-        raise
-    finally:
-        if tx_token:
-            _transaction_id.reset(tx_token)
-
-async def catch(try_step, catch_step,context=dict()):
-    print(f"CATCH {try_step} - {catch_step} - {context}")
-    try:
-        outcome = await _execute_step_internal(try_step,context)
-    except Exception as e:
-        outcome = {'success': False, 'errors': [str(e)]}
-    if isinstance(outcome, dict) and outcome.get('success') is False:
-        framework_log("WARNING", f"Fallimento nello step. Esecuzione del fallback: {outcome.get('errors')}", emoji="⚠️")
-        return await _execute_step_internal(catch_step,context)
-    return outcome
-
-async def foreach(input_data, step_to_run, context=dict()) -> List[Any]:
-    if isinstance(input_data, dict):
-        items = list(input_data.values())
-    elif isinstance(input_data, (list, tuple)):
-        items = list(input_data)
-    elif hasattr(input_data, '__iter__') and not isinstance(input_data, (str, bytes)):
-        items = list(input_data)
-    else:
-        raise TypeError(f"foreach si aspetta una lista, tupla o dizionario, ricevuto: {type(input_data)}")
-    
-    results = []
-    
-    # Identify the callable or action to run
-    # If step_to_run is a DSL function (triple), we treat it as the callable part of an action
-    is_dsl_func = isinstance(step_to_run, (tuple, list)) and len(step_to_run) == 3 and isinstance(step_to_run[1], dict)
-    
-    for item in items:
-        if is_dsl_func or callable(step_to_run) or isinstance(step_to_run, str):
-            action = (step_to_run, (item,), {})
-        elif isinstance(step_to_run, (tuple, list)) and len(step_to_run) >= 1:
-            # step_to_run is already an action (func, args, kwargs)
-            #   we prepend the item to the positional args
-            fun = step_to_run[0]
-            orig_args = step_to_run[1] if len(step_to_run) > 1 else ()
-            orig_kwargs = step_to_run[2] if len(step_to_run) > 2 else {}
-            action = (fun, (item,) + orig_args, orig_kwargs)
-        else:
-            action = (step_to_run, (item,), {})
-
-        outcome = await _execute_step_internal(action, context=context.copy())
-        
-        # Auto-unwrapping transactional result
-        if isinstance(outcome, dict):
-            is_success = outcome.get('success') or outcome.get('ok')
-            if is_success is True and 'data' in outcome:
-                outcome = outcome['data']
-            elif is_success is False:
-                # Handle error if needed, for now just append the error dict
-                pass
-        
-        results.append(outcome)
-    return results
-
-async def batch(*steps_to_run) -> Dict[str, Any]:
-    if not steps_to_run:
-        return {"success": True, "data": [], "errors": None}
-
-    tasks = []
-    with log_block(f"Batch with {len(steps_to_run)} steps", level="TRACE", emoji="🧬"):
-        for action_step in steps_to_run:
-            if hasattr(action_step, '__call__') or asyncio.iscoroutinefunction(action_step):
-                 step_tuple = (action_step, (), {})
-                 task = asyncio.create_task(_execute_step_internal(step_tuple))
-            elif isinstance(action_step, tuple):
-                 task = asyncio.create_task(_execute_step_internal(action_step))
-            else:
-                raise TypeError(f"batch supporta solo step (tuple) o callable, ricevuto: {type(action_step)}")
-            tasks.append(task)
-        
-        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
-    
-    successes = []
-    failures = []
-    for r in raw_results:
-        if isinstance(r, Exception):
-            failures.append({"type": type(r).__name__, "message": str(r)})
-            continue
-        if isinstance(r, dict):
-            if r.get('success') is False: 
-                failures.extend(r.get('errors', []))
-            else:
-                successes.append(r.get('data', r))
-        else:
-            successes.append(r)
-    
-    is_success = len(failures) == 0
     return {
-        "success": is_success,
-        "data": successes,
-        "errors": failures
+        'outputs': outputs,
+        'errors': errors,
+        'success': all(e is None for e in errors)
     }
 
-async def race(*steps_to_run) -> Any:
-    if not steps_to_run:
-        return None
+@action()
+async def serial(data, action,context=dict()):
+    outputs = []
+    for item in data:
+        output = await act(action, context|{'inputs': (item,)})
+        outputs.append(output)
+    return aggregate_results(outputs)
 
-    tasks = []
-    for action_step in steps_to_run:
-        if hasattr(action_step, '__call__') or asyncio.iscoroutinefunction(action_step):
-             step_tuple = (action_step, (), {})
-             task = asyncio.create_task(_execute_step_internal(step_tuple))
-        elif isinstance(action_step, tuple):
-             task = asyncio.create_task(_execute_step_internal(action_step))
-        else:
-             raise TypeError(f"race supporta solo step (tuple) o callable, ricevuto: {type(action_step)}")
-        tasks.append(task)
-
-    try:
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        winner_task = done.pop()
-        try:
-            return winner_task.result()
-        except Exception as e:
-            return {"success": False, "errors": [str(e)], "type": "RaceWinnerError"}
-    finally:
-        for task in pending:
-            task.cancel()
-
-async def retry(action_step, attempts = 3, delay = 1.0, context=dict()) -> Any:
-    last_outcome = None
+@action()
+async def parallel(*acts, **options):
+    context = options.get('context',dict())
+    # Avvia tutte le coroutine insieme
+    tasks = [act(action, context) for action in acts]
+    results = await asyncio.gather(*tasks)
     
-    for attempt in range(attempts):
-        framework_log("DEBUG", f"Tentativo {attempt + 1}/{attempts} per lo step...", emoji="🔄")
-        outcome = await _execute_step_internal(action_step,context)
-        last_outcome = outcome
-        
-        if not (isinstance(outcome, dict) and outcome.get('success') is False):
-            framework_log("DEBUG", f"Step completato al tentativo {attempt + 1}.", emoji="✅")
-            return outcome
-        
-        if attempt < attempts - 1:
-            framework_log("WARNING", f"Fallimento. Attesa di {delay} secondi prima di riprovare.", emoji="⏳")
-            await asyncio.sleep(delay)
+    # Usi la tua funzione aggregate_results per unire tutto
+    return aggregate_results(results)
 
-    framework_log("ERROR", f"Fallimento definitivo dopo {attempts} tentativi.", emoji="❌")
-    return last_outcome
+# ------------ Decisione ------------
 
-async def timeout(action_step, max_seconds = 30.0, context=dict()) -> Any:
+async def assertt(condition, context=dict()):
+    if not eval(condition, context):
+        raise AssertionError(f"Assertion failed: {condition}")
+    return condition
+
+@action()
+async def sentry(condition, context=dict()):
+    if not eval(condition,context):
+        raise Exception(f"Condition not met: {condition}")
+    else:
+        return condition
+
+@action()
+async def when(condition, step, context=dict()):
+    # Se la condizione (funzione o booleano) è vera, esegue lo step
+    should_run = await sentry(condition, context)
+    if should_run.get('success', False):
+        return await act(step, context)
+    else:
+        return should_run
+
+@action()
+async def switch(cases: dict, context=None):
+    """
+    Seleziona ed esegue uno step tra molti in base al risultato di condition_fn.
+    cases = {'valore1': step1, 'valore2': step2, 'default': step_default}
+    """
+
+    for case in cases:
+        if case.lower() == 'true':
+            continue
+        pas = await when(case, cases[case], context)
+        if pas.get('success', False):
+            return pas
+    
+    return await when('true', cases['true'], context)
+
+# ------------ Sequenza ------------
+
+@action()
+async def passs(value=None, context=dict()):
+    return value
+
+@action()
+async def pipeline(*acts, context={}):
+    """
+    Esegue una serie di azioni in sequenza, passando l'output 
+    di una come input alla successiva.
+    """
+    last_output = None
+    ctx = context if context is not None else {}
+    pipeline_results = []
+
+    for i, action in enumerate(acts):
+        # Per il primo step usiamo il contesto originale.
+        # Per i successivi, l'input è l'output dello step precedente.
+        current_ctx = ctx if i == 0 else {**ctx, 'outputs':pipeline_results,'inputs': last_output}
+        
+        # Eseguiamo l'azione
+        result = await act(action, current_ctx)
+        pipeline_results.append(result)
+
+        # Se uno step fallisce, fermiamo la pipeline
+        if not result.get('success', False):
+            #raise Exception(result.get('errors'))
+            return result
+            
+        # Aggiorniamo l'output per il prossimo step
+        last_output = result.get('outputs')
+
+    # Usiamo la tua funzione per aggregare la storia della pipeline
+    #print(pipeline_results)
+    return aggregate_results(pipeline_results)
+
+# ------------ Resilienza ------------
+
+@action()
+async def retry(action, *,retries=3, delay=1, context=dict()):
+    last_result = None
+    for i in range(retries):
+        last_result = await act(action, context)
+        if last_result.get('success', False):
+            return last_result
+        if i < retries - 1:
+            await asyncio.sleep(delay * (i + 1)) # Backoff lineare
+    return last_result
+
+@action()
+async def timeout(action, seconds: float, context=None):
+    ctx = context if context is not None else {}
     try:
-        task = asyncio.create_task(_execute_step_internal(action_step,context))
-        return await asyncio.wait_for(task, timeout=max_seconds)
+        # Avviamo l'azione con un limite di tempo
+        return await asyncio.wait_for(act(action, ctx), timeout=seconds)
     except asyncio.TimeoutError:
         return {
-            "success": False,
-            "errors": [f"Timeout superato: lo step non è stato completato entro {max_seconds} secondi."],
-            "type": "TimeoutError"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "errors": [f"Errore interno durante il timeout: {e}"],
-            "type": "ExecutionError"
+            'action': 'timeout',
+            'success': False,
+            'errors': [f"Action timed out after {seconds}s"],
+            'outputs': None
         }
 
-async def throttle(action_step, rate_limit_ms = 1000, context=dict()) -> Any:
-    fun = action_step[0]
-    action_id = fun.__name__ 
-    rate_limit_s = rate_limit_ms / 1000.0 
-    current_time = time.time()
-    
-    last_execution_time = _throttle_state.get(action_id, 0)
-    time_since_last_call = current_time - last_execution_time
-    
-    if time_since_last_call < rate_limit_s:
-        wait_time = rate_limit_s - time_since_last_call
-        print(f"THROTTLE: Limite raggiunto per {action_id}. Attesa di {wait_time:.3f}s...")
-        await asyncio.sleep(wait_time)
-        
-    _throttle_state[action_id] = time.time()
-    return await _execute_step_internal(action_step)
+@action()
+def log(*a,**b):
+    a = "".join(a)
+    c = a.format(**b)
+    print(c)
+    return c
 
-def _wrap_as_step(func):
-    """Wraps a callable as a flow.step if it's not already a tuple."""
-    if callable(func) and not isinstance(func, tuple):
-        return flow.step(func)
-    return func
 
-async def _dsl_switch(cases_or_value, value_or_context=None, context=None):
-    """Switch that auto-wraps callables as steps.
+@action()
+async def catch(action, catch_act=passs,context=dict()):
+    # action = (action, inputs, options) - fn, inputs, options
+    n1 = await act(action, context)
+    if n1.get('success',False):
+        return n1
     
-    Can be called as:
-    - match(cases_dict, context) - standard call
-    - value | match(cases_dict) - piped call where value becomes first arg
-    """
-    # Determine which argument is which
-    if isinstance(cases_or_value, dict) and all(isinstance(k, str) for k in cases_or_value.keys()):
-        # First arg is cases, second is context or value
-        cases = cases_or_value
-        if isinstance(value_or_context, dict) and '@' not in value_or_context:
-            ctx = value_or_context
-        else:
-            # value_or_context is the value to match
-            ctx = {'@': value_or_context} if value_or_context is not None else (context or {})
-    else:
-        # First arg is the value (from pipe), second is cases
-        value = cases_or_value
-        cases = value_or_context if isinstance(value_or_context, dict) else {}
-        ctx = (context or {}).copy()
-        ctx['@'] = value
+    recovery = await act(catch_act, context|n1)
     
-    # Wrap actions as steps
-    if isinstance(cases, dict):
-        wrapped_cases = {k: _wrap_as_step(v) for k, v in cases.items()}
-    elif isinstance(cases, (list, tuple)):
-        if cases and isinstance(cases[0], (list, tuple)) and len(cases[0]) == 2:
-            wrapped_cases = [(cond, _wrap_as_step(action)) for cond, action in cases]
-        else:
-            wrapped_cases = cases
-    else:
-        wrapped_cases = cases
+    # Uniamo gli errori precedenti a quelli nuovi (se presenti)
+    all_errors = n1.get('errors', []) + recovery.get('errors', [])
     
-    return await switch(wrapped_cases, ctx)
-
-async def trigger(event_name, context=dict()) -> Dict[str, Any]:
-    print(f"TRIGGER: Stage '{event_name}' in attesa di attivazione esterna...")
-    if event_name not in _active_events:
-        _active_events[event_name] = asyncio.Event()
-    
-    event_obj = _active_events[event_name]
-    await event_obj.wait()
-
-    payload = _event_payloads.pop(event_name, {"data": "Dati non disponibili o mancanti."})
-    _active_events.pop(event_name, None)
-
-    print(f"TRIGGER: Stage '{event_name}' attivato. Payload ricevuto.")
-    return {
-        "ok": True, 
-        "data": payload
-    }
+    # Restituiamo il risultato del recovery ma con la lista errori completa
+    return recovery | {'errors': list(set(all_errors))} # set() opzionale per evitare duplicati

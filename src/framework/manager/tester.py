@@ -7,6 +7,7 @@ import asyncio
 import inspect
 from framework.service.diagnostic import framework_log
 import framework.service.language as language
+import framework.service.flow as flow
 
 class tester():
 
@@ -37,13 +38,11 @@ class tester():
                     except Exception as e:
                         framework_log("ERROR", f"Errore caricamento test {module_path}: {e}", emoji="❌")
         return test_suite
-    
+
     async def run(self,**constants):
         framework_log("INFO", "Avvio esecuzione suite di test...", emoji="🧪")
         import framework.service.load as loader
-        from framework.service.language import parse_dsl_file, run_dsl_tests, DSLVisitor, dsl_functions
         test_dir = './src'
-        test_suite = unittest.TestSuite()
         
         # Scorri tutte le sottocartelle e i file
         for root, dirs, files in os.walk(test_dir):
@@ -53,23 +52,17 @@ class tester():
                     module_path = os.path.join(root, file).replace('./','')
                     
                     # Importa il modulo di test dinamicamente via loader
-                    try:
-                        print(module_path)
-                        res = await loader.resource(path=module_path)
-                        if res.get('success'):
-                            parsed_data = parse_dsl_file(res.get('data'))
-        
-                            # 2. Esecuzione
-                            print("🏃 Step 2: Esecuzione e Validazione...")
-                            visitor = DSLVisitor(dsl_functions)
-                            
-                            # Eseguiamo il file per popolare il contesto
-                            context = await visitor.run(parsed_data)
-                            
-                            # Eseguiamo la validazione formale via test_suite
-                            success = await run_dsl_tests(visitor, context)
-                    except Exception as e:
-                        framework_log("ERROR", f"Errore caricamento test {module_path}: {e}", emoji="❌")
+                    parser = language.create_parser()
+                    visitor = language.Interpreter(language.DSL_FUNCTIONS)
+                    await flow.catch(
+                        flow.step(flow.pipeline,
+                            flow.step(loader.resource,path=module_path),
+                            flow.step(language.parse,'@.inputs',parser),
+                            #flow.step(visitor.run,'@.inputs'),
+                            flow.step(flow.log,"--->: {inputs}  \n"),
+                        ),
+                        flow.step(flow.log,"Errore: {errors[0]} "),
+                    )
     
     async def unittest2(self, code: str, **constants):
         def get_test_methods( suite):
@@ -293,9 +286,3 @@ class tester():
             "success": results["failed"] == 0,
             "data": results
         }
-
-    '''def run(self,**constants):
-        framework_log("INFO", "Avvio esecuzione suite di test...", emoji="🧪")
-        suite = self.discover_tests()
-        runner = unittest.TextTestRunner()
-        runner.run(suite)'''

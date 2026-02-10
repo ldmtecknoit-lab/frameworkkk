@@ -1,51 +1,85 @@
 imports: {
-    'contract': 'framework/service/contract.py';
+    'flow':resource("framework/service/floww.py");
 };
 
 exports: {
-    'asynchronous': 'asynchronous';
-    'synchronous': 'synchronous';
-    'format': 'format';
-    'transform': 'transform';
-    'convert': 'convert';
-    'route': 'route';
-    'normalize': 'normalize';
-    'put': 'put';
-    'get': 'get';
-    'work': 'work';
-    'step': 'step';
-    'pipe': 'pipe';
-    'catch': 'catch';
+    'assert': imports.flow.assertt;
+    'foreach': imports.flow.foreach;
+    'pass': imports.flow.passs;
+    'catch':  imports.flow.catch;
+    'serial': imports.flow.serial;
+    'parallel': imports.flow.parallel;
+    'retry': imports.flow.retry;
+    'pipeline': imports.flow.pipeline;
+    'sentry': imports.flow.sentry;
+    'switch': imports.flow.switch;
+    'when': imports.flow.when;
+    'timeout': imports.flow.timeout;
 };
 
-str:match_score_label :=
-    75 |> match({
-        "@ > 90": "Ottimo";
-        "@ > 60": "Sufficiente";
-        "*": "Insufficiente";
-    });
+type:scheme := {
+    "action": {
+        "type": "string";
+        "default": "unknown";
+    };
+    "inputs": {
+        "type": "list";
+        "default": [];
+    };
+    "outputs": {
+        "type": "list";
+        "default": [];
+        "convert": list;
+    };
+    "errors": {
+        "type": "list";
+        "default": [];
+    };
+    "success": {
+        "type": "boolean";
+        "default": false;
+    };
+    "time": {
+        "type": "string";
+        "default": "0";
+    };
+    "worker": {
+        "type": "string";
+        "default": "unknown";
+    };
+};
 
-function:attivazione := (int:x),{
-    f:x |> match({
-        "@ >= 50": "Attivo";
-        "@ < 50": "Inattivo";
-    });
-},(int:f);
+function:error_function := (str:y),{
+    x:y/2;
+},(str:x);
 
-list:score_list := (85,75,65,55,45,35,25,15,5,0) |> foreach(attivazione);
+scheme:catch_error := exports.catch(error_function,print,{inputs:["test"];}) |> print;
 
-any:module := resource("framework/service/flow.py");
+scheme:foreach_test := exports.serial([1,2,3],print,{inputs:["test"];}) |> print;
 
-#any:catch_error := module.catch(attivazione,print,{x:10;}) |> print;
+scheme:parallel_test := exports.parallel(print,print,context:{inputs:["test"];}) |> print;
 
-any:switch_1 := 12 |> module._dsl_switch({
-        "@ > 90": "Ottimo";
-        "@ <= 60": "Sufficiente";
-        "": "Insufficiente";
-    }) |> print;
+scheme:pipeline_test := exports.pipeline(print,print,context:{inputs:["test"];}) |> print;
+
+scheme:retry_test := exports.retry(error_function,context:{inputs:["test"];}) |> print;
+
+scheme:sentry_test := exports.sentry("True",context:{inputs:["test"];}) |> print;
+
+scheme:switch_test := exports.switch({"True": print; "1 == 2": print;},context:{inputs:["test"];}) |> print;
+
+scheme:when_test_success := exports.when("1 == 1", print,context:{inputs:["test"];});
+scheme:when_test_failure := exports.when("1 == 2", print,context:{inputs:["test"];});
+
+#scheme:test_assert_failure := exports.assert("10 >= 50");
+#scheme:test_assert_success := exports.assert("10 <= 50");
+
+any:pass_test := exports.pass(10);
 
 tuple:test_suite := (
-    { "target": "match_score_label"; "output": "Sufficiente"; "description": "Match flow"; },
-    { "target": "score_list"; "output": ["Attivo", "Attivo", "Attivo", "Attivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo", "Inattivo"]; "description": "Match flow list"; },
-    
+    { "target": "pass_test"; "output": pass_test |> put("outputs",10); "description": "Pass flow"; },
+    { "target": "when_test_success"; "output": when_test_success |> put("outputs",["test"]); "description": "Match flow"; },
+    { "target": "when_test_failure"; "output": when_test_failure |> put("outputs",[]); "description": "Match flow"; },
+    #{ "target": "test_assert_failure"; "output": test_assert_failure |> put("outputs",[]); "description": "Match flow"; },
+    #{ "target": "test_assert_success"; "output": test_assert_success |> put("outputs",["10 <= 50"]); "description": "Match flow"; },
+
 );
