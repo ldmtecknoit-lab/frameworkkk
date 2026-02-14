@@ -801,7 +801,7 @@ class Interpreter:
             else:
                 raise DSLRuntimeError(f"Invalid function object for '{name}'", node.get("meta"))
 
-            local_env = env.copy()
+            local_env = {}
 
             # Bind parametri
             for param_node, arg_node in zip(params_ast, node["args"]):
@@ -810,25 +810,20 @@ class Interpreter:
                 arg_value, _ = await self.visit(arg_node, env)
                 arg_value = await self._check_type(arg_value, param_type, arg_node.get("meta"), param_name)
                 local_env[param_name] = arg_value
-
-            # Pipe value
-            if piped_value is not None:
-                local_env["__pipe__"] = piped_value
-
+            
             # Esegui body
             result, _ = await self.visit(body_ast, local_env)
+            out = None
+            # Controllo tipo di ritorno
+            ret_node = func_obj[2]
+            for ty in ret_node:
+                pair,env = await self.visit(ty,local_env)
+                tipo,name = pair
+                if name in result:
+                    out = await self._check_type(result[name], tipo, ty.get("meta"))
+                    #print("####",ody_result)
 
-            # Se il body è dict con un solo pair, estrai il value
-            if isinstance(result, dict) and len(result) == 1:
-                result = list(result.values())[0]
-
-            # Check return type (solo primo pair)
-            if return_ast and isinstance(return_ast, list) and len(return_ast) > 0:
-                ret_node = return_ast[0]
-                expected_type = ret_node["key"]["name"]
-                result = await self._check_type(result, expected_type, ret_node.get("meta"))
-
-            return result, env
+            return out, env
 
         # Built-in
         if name not in self.functions:
