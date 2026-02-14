@@ -26,15 +26,14 @@ GRAMMAR = r"""
 start: dictionary
 
 dictionary: "{" item* "}" | item*
-item: pair ";"?
-
-declaration: pair ":=" atom
+item: pair ";"? | declaration ";"?
+declaration: pair ":=" expr
 
 pair: key ":" expr
 
 key: value | CNAME | QUALIFIED_CNAME
 
-?expr: declaration | atom | pipe
+?expr: atom | pipe
 
 ?pipe: logic (PIPE logic)* -> pipe_node
 
@@ -56,6 +55,7 @@ key: value | CNAME | QUALIFIED_CNAME
       | atom "^" power -> power
 
 ?atom: value
+     | function_value
      | function_call
      | dictionary
      | tuple
@@ -128,7 +128,7 @@ OPS_FUNCTIONS = {
 TYPE_MAP = {
     'int': int, 'float': float, 'str': str, 'bool': bool,
     'dict': dict, 'list': list, 'any': object, 'type': dict,
-    'function': dict,
+    'function': tuple,
 
 }
 
@@ -580,12 +580,12 @@ class Interpreter:
     # =========================================================
 
     async def visit_declaration(self, node, env):
-        
-        name = node["target"]["name"]
+        #print(node)
+        pair,pass_env = await self.visit(node["target"],env)
 
         value, env_after = await self.visit(node["value"], env)
+        declared_type,name = pair
 
-        declared_type = node["target"].get("var_type")
         value = await self._check_type(
             value,
             declared_type,
@@ -593,10 +593,7 @@ class Interpreter:
             name
         )
 
-        # 🔥 immutabilità: nuovo env
-        new_env = {**env_after, name: value}
-
-        return value, new_env
+        return (name,value), env_after
 
     # =========================================================
     # COLLECTIONS
@@ -707,7 +704,7 @@ class Interpreter:
     async def visit_call(self, node, env): 
         return await self._call(node, env)
 
-    async def _call(self, node, env, piped_value=None):
+    async def _call2(self, node, env, piped_value=None):
         """
         Esegue una funzione: built-in o definita dall'utente.
         node: nodo AST di tipo "call"
@@ -793,15 +790,116 @@ class Interpreter:
 
         return result, current_env
 
+    async def _call(self, node, env, piped_value=None):
+        name = node["name"]
+
+        if name in env:
+            func_obj = env[name]
+
+            if isinstance(func_obj, tuple) and len(func_obj) == 3:
+                params_ast, body_ast, return_ast = func_obj
+            else:
+                raise DSLRuntimeError(f"Invalid function object for '{name}'", node.get("meta"))
+
+            local_env = env.copy()
+
+            # Bind parametri
+            for param_node, arg_node in zip(params_ast, node["args"]):
+                param_type = param_node["key"]["name"]
+                param_name = param_node["value"]["name"]
+                arg_value, _ = await self.visit(arg_node, env)
+                arg_value = await self._check_type(arg_value, param_type, arg_node.get("meta"), param_name)
+                local_env[param_name] = arg_value
+
+            # Pipe value
+            if piped_value is not None:
+                local_env["__pipe__"] = piped_value
+
+            # Esegui body
+            result, _ = await self.visit(body_ast, local_env)
+
+            # Se il body è dict con un solo pair, estrai il value
+            if isinstance(result, dict) and len(result) == 1:
+                result = list(result.values())[0]
+
+            # Check return type (solo primo pair)
+            if return_ast and isinstance(return_ast, list) and len(return_ast) > 0:
+                ret_node = return_ast[0]
+                expected_type = ret_node["key"]["name"]
+                result = await self._check_type(result, expected_type, ret_node.get("meta"))
+
+            return result, env
+
+        # Built-in
+        if name not in self.functions:
+            raise DSLRuntimeError(f"Unknown function '{name}'", node.get("meta"))
+
+        fn = self.functions[name]
+
+        args = []
+        current_env = env
+        for a in node["args"]:
+            val, current_env = await self.visit(a, current_env)
+            args.append(val)
+
+        kwargs = {}
+        for k, v in node["kwargs"].items():
+            val, current_env = await self.visit(v, current_env)
+            kwargs[k] = val
+
+        if piped_value is not None:
+            args.insert(0, piped_value)
+
+        result = fn(*args, **kwargs)
+        if inspect.isawaitable(result):
+            result = await result
+
+        return result, current_env
 
 
     # =========================================================
     # TYPE CHECK
     # =========================================================
 
-    async def visit_function_def(self, node, env):
+    async def visit_function_def2(self, node, env):
         # Una funzione è un valore già pronto
         return node, env
+
+    async def visit_function_def(self, node, env):
+
+        # ----------------------
+        # PARAMETRI
+        # ----------------------
+        params = []
+
+        for p in node["params"]:
+            # se è typed_var (dopo che sistemi la grammar)
+            if p.get("type") == "typed_var":
+                params.append({
+                    "var_type": p["var_type"],
+                    "name": p["name"]
+                })
+            else:
+                # fallback temporaneo per il tuo AST attuale
+                # dict con pair(int:c)
+                pair = p["items"][0]
+                params.append(pair)
+
+        # ----------------------
+        # BODY
+        # ----------------------
+        body_value = node["body"]
+
+        # ----------------------
+        # RETURN TYPE
+        # ----------------------
+        return_types = []
+
+        for r in node["return_type"]["items"]:
+            pair = r["items"][0]
+            return_types.append(pair)
+
+        return (params, body_value, return_types), env
 
     async def _check_type(self, value, expected_type, meta=None, var_name=None):
 
